@@ -1,0 +1,17 @@
+# ⚠️ assets/data.js 与 assets/data.json 是有意提交的
+#
+# 它们虽然由 tools/generate.py 生成，但**必须**入版本库：
+# 本站点的卖点之一是「clone 下来双击 index.html 即可打开」，
+# 依赖数据内联在 data.js 里、不发 fetch 请求（file:// 协议下不会被 CORS 拦）。
+# 排除它们会让 clone 后的仓库变成空站。
+#
+# 刷新数据请改生成器（LAYERS / TAGS / NOTES 等口径）后重跑：
+#     python3 tools/generate.py
+
+# 系统垃圾
+.DS_Store
+__pycache__/
+*.pyc
+
+# 本地验证产物
+/tmp_shots/

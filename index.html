@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>z-opc-foundation · 一人公司技术基座</title>
+<meta name="description" content="z-opc-foundation 组织的 41 个自研仓库总览：Agent 家族、中间件层、Boot 封装层、业务域与孵化项目。">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="#top">
+      <span class="brand-mark">z</span>
+      <span class="brand-text">z-opc<span class="brand-dim">-foundation</span></span>
+    </a>
+    <nav class="nav" id="nav">
+      <a href="#architecture">架构分层</a>
+      <a href="#repos">仓库总览</a>
+      <a href="#stack">技术栈</a>
+      <a href="#about">关于</a>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">☰</button>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ── HERO ───────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-grid" aria-hidden="true"></div>
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="wrap hero-in">
+      <p class="eyebrow"><span class="dot"></span>One Company · 自建全栈基础设施</p>
+      <h1 class="hero-title">
+        <span class="l1">把中间件<span class="accent">全部自研</span></span>
+        <span class="l2">而不是各拉一个<span class="strike">现成件</span></span>
+      </h1>
+      <p class="hero-sub" id="heroDesc"></p>
+
+      <div class="hero-stats" id="heroStats"></div>
+
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#repos">
+          浏览 41 个仓库
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a class="btn btn-ghost" href="#architecture">看分层架构</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 架构分层 ────────────────────────────────────────── -->
+  <section class="section" id="architecture">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="sec-kicker">Architecture</p>
+        <h2 class="sec-title">七层架构</h2>
+        <p class="sec-sub">
+          分层口径取自 lead 仓的「全仓版本表」—— 事实表的唯一来源。
+          上层依赖下层，数据面模块之间不互依；跨中间件的耦合全部收在控制面。
+        </p>
+      </header>
+      <div class="layers" id="layerList"></div>
+    </div>
+  </section>
+
+  <!-- ── 依赖 ────────────────────────────────────────────── -->
+  <section class="section section-alt" id="deps">
+    <div class="wrap">
+      <div class="dep-grid">
+        <div class="dep-card">
+          <h3 class="dep-h">被依赖 TOP 3</h3>
+          <p class="dep-sub">全仓 pom <code>&lt;dependency&gt;</code> 实扫，坐标归一到 owning 仓</p>
+          <div id="depFans"></div>
+        </div>
+        <div class="dep-card">
+          <h3 class="dep-h">零跨仓依赖</h3>
+          <p class="dep-sub">可以独立编译、独立发布、独立替换</p>
+          <div class="chips" id="zeroDep"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 仓库总览 ────────────────────────────────────────── -->
+  <section class="section" id="repos">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="sec-kicker">Repositories</p>
+        <h2 class="sec-title">仓库总览</h2>
+        <p class="sec-sub">
+          41 个登记仓库，每个都标注了它的分层归属、发布状态、模块数与代码体量。
+          摘要摘自各仓 README，注记为 lead 仓 2026-10-03 审计的实测结论。
+        </p>
+      </header>
+
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+            <circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input type="search" id="q" placeholder="搜索仓库名、定位、模块、构件…" autocomplete="off" spellcheck="false">
+          <button class="clear" id="clearQ" hidden aria-label="清空">×</button>
+        </div>
+        <div class="filters" id="layerFilters" role="tablist"></div>
+      </div>
+
+      <p class="result-line" id="resultLine"></p>
+      <div class="repo-grid" id="repoGrid"></div>
+      <div class="empty" id="empty" hidden>
+        <p>没有匹配的仓库</p>
+        <button class="btn btn-ghost btn-sm" id="resetBtn">清除筛选</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 技术栈 ──────────────────────────────────────────── -->
+  <section class="section section-alt" id="stack">
+    <div class="wrap">
+      <header class="sec-head">
+        <p class="sec-kicker">Stack</p>
+        <h2 class="sec-title">技术栈分布</h2>
+        <p class="sec-sub">
+          逐仓 pom / package.json 实测，按代码文件数统计。Java 占绝对主导 ——
+          这是一套以 Spring Boot 生态为骨架的基座。
+        </p>
+      </header>
+      <div class="stack" id="stackChart"></div>
+    </div>
+  </section>
+
+  <!-- ── 关于 ────────────────────────────────────────────── -->
+  <section class="section" id="about">
+    <div class="wrap about-grid">
+      <div>
+        <p class="sec-kicker">About</p>
+        <h2 class="sec-title">关于这个组织</h2>
+        <div class="about-text" id="aboutText"></div>
+      </div>
+      <aside class="about-side">
+        <div class="side-block">
+          <h4>发布渠道</h4>
+          <ul>
+            <li><span>Java 构件</span><code>Maven Central</code><em>io.github.yuku123</em></li>
+            <li><span>前端包</span><code>npm</code><em>@yuku123/render</em></li>
+            <li><span>版本标签</span><code>git tag</code><em>Central 不发 SNAPSHOT</em></li>
+          </ul>
+        </div>
+        <div class="side-block">
+          <h4>事实来源</h4>
+          <ul class="plain">
+            <li><code>manifest.json</code> 41 仓登记表</li>
+            <li><code>README.md</code> 全仓版本表（逐仓实测）</li>
+            <li>各仓 <code>README.md</code> / <code>pom.xml</code></li>
+            <li>本机磁盘 clone 状态与 git 提交数</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <p>
+      数据于 <strong id="genDate"></strong> 从 41 个仓库实测生成 ·
+      <code>z-desc/tools/generate.py</code> 可复现
+    </p>
+    <p class="foot-dim">本页面为只读展示，代码与源码版权归属各原仓。</p>
+  </div>
+</footer>
+
+<!-- ── 详情抽屉 ──────────────────────────────────────────── -->
+<div class="drawer-mask" id="mask" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-modal="true" role="dialog" aria-labelledby="dTitle">
+  <button class="drawer-close" id="dClose" aria-label="关闭">×</button>
+  <div class="drawer-body" id="dBody"></div>
+</aside>
+
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
