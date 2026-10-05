@@ -67,7 +67,7 @@ LAYERS = [
         "desc": "自研基础设施群：缓存、消息队列、配置中心、调度、工作流、RPC、网关、图库、"
                 "向量库、知识库、4A、密钥、消息下发、对象存储、代码索引。"
                 "跨中间件的边全在 admin / web / registry 控制面。",
-        "repos": ["z-util", "z-cache", "z-mq", "z-config", "z-schedule", "z-wf", "z-rpc",
+        "repos": ["z-util", "z-cache", "z-mq", "z-config", "z-schedule", "z-camuda", "z-rpc",
                   "z-gw", "z-graph", "z-vector", "z-kb", "z-ctc", "z-mist", "z-msg",
                   "z-oss", "z-indexer"],
     },
@@ -101,7 +101,7 @@ TAGS = {
     "z-agent-proxy": "三方 agent 适配代理", "z-util": "多模块工具库集（第一底座）",
     "z-cache": "Redis 协议兼容分布式缓存", "z-mq": "NameServer + Broker 消息队列",
     "z-config": "配置中心 + 服务注册中心", "z-schedule": "分布式任务调度",
-    "z-wf": "工作流引擎（Camunda 基座）", "z-rpc": "RPC 框架",
+    "z-camuda": "工作流引擎（Camunda 基座）", "z-rpc": "RPC 框架",
     "z-gw": "Netty 自研 API 网关", "z-graph": "图数据库（增量存储）",
     "z-vector": "自研向量数据库", "z-kb": "自托管知识库（RAG）",
     "z-ctc": "4A 中心 + SSO", "z-mist": "分布式密钥 / 秘密管理",
