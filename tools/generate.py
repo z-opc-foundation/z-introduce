@@ -125,21 +125,22 @@ TAGS = {
 
 # 已知问题，逐条取自 lead 仓各轮审计的实测记录（近期一轮为 2026-10-08），不做推测
 NOTES = {
-    "z-boot": "⚠️ z-boot-parent 1.0.23 的 fleet 版本仍写 1.0.1，实际已发 1.0.2，消费方继承到落后一档",
-    "z-asset": "⚠️ parent 仍是 com.zifang:z-opc 且 relativePath 指向不存在的文件，独立仓不可构建（P0）",
+    "z-boot": "⚠️ z-boot-parent 的 z-boot-fleet.version 仍写 1.0.1，而中央已到 1.0.4"
+            "（2026-10-08 实扫）⇒ 继承到的版本表落后一档，1.0.21 影响 36 仓 / 1.0.23 影响 2 仓",
+    "z-asset": "parent 已换 io.github.yuku123:z-boot-parent:1.0.21（2026-10-08 根 pom 现读）；"
+            "剩 ${revision}+flatten 面未对齐（根 pom 版本是写死面值、全仓 0 个 flatten 配置）",
     "z-oss": "⚠️ pom 宣传 MinIO provider，实现未落地",
     "z-graph": "⚠️ 默认纯内存存储，重启丢数据",
     "z-kb": "未配向量 / 图存储时自动回落 JSON + 内存",
-    "z-indexer": "已发 Central，组织内暂无消费方",
+    "z-indexer": "已发 Central；本轮实扫唯一引它的是 z-boot 聚合面（1 个消费方）",
     "z-webide": "⚠️ 仓名 z-webide ≠ 构件名 z-tool-webide",
     "z-task": "是任务管理而非定时调度，仓内无调度器实现",
-    "z-bot": "本地 0.2.1 高于 Central 0.2.0，待发版",
-    "z-opcs": "本地 1.0.0-SNAPSHOT，未发 Central",
-    "z-report": "本地 1.0.0-SNAPSHOT，未发 Central",
     "z-env": "无 pom，属编排仓而非 Java 构件",
     "z-render": "发布渠道是 npm @yuku123/render，不走 Central",
-    "z-ops": "GitHub 有仓，本机未 clone（manifest 已标 not_cloned）",
-    "z-mcp": "当前零跨仓依赖，独立性最强",
+    "z-ops": "服务端产品仓，按 README 政策不发中央（repo1 根构件 404 实测 2026-10-08）；"
+            "除刻意独立 POM 树的 z-boot / z-util 外，它是唯一没接 z-boot-parent 的 Maven 仓",
+    "z-mcp": "⚠️ z-mcp-starter 以 1.0.0-SNAPSHOT 引 z-agent-center-core（provided），"
+            "该坐标 repo1 404、本机 ~/.m2 也没有（2026-10-08 实测）⇒ 下次构建会在这一条断",
     "z-opc": "reactor 模块已从 9 降到 4，被拆走的中间件改由 Central 坐标消费",
     "z-wf": "⚠️ 同坐标 io.github.yuku123:z-wf 的 1.x 是 Camunda 线（现为 z-camuda 仓），"
             "两仓无共同历史，消费方须锁 2.x",
@@ -147,8 +148,8 @@ NOTES = {
     "z-desc": "本站本身：无 pom、不发中央，数据由本生成器实测产出",
 }
 
-DEP_FANS = [("z-util", 28), ("z-boot", 22), ("z-agent-kernel", 7)]
-ZERO_DEP = ["z-agent-kernel", "z-util", "z-graph", "z-mcp", "z-env", "z-render"]
+# 被依赖 TOP3 与「独立仓」两组读数一律在 main() 里现算自 lead 的 maven-inventory 产物，
+# 不在这里写死 —— 写死的那一轮就是它和 lead 对不上、要人工追的那一轮。
 
 
 def run(cmd, cwd):
@@ -292,6 +293,31 @@ def main():
     with open(manifest_path, encoding="utf-8") as fh:
         manifest = {r["name"]: r for r in json.load(fh)["repositories"]}
 
+    # 跨仓依赖图现算：消费面 = 去重后的 (owner, artifactId, version) 边里 owner→consumer 的仓数
+    inv_path = os.path.join(
+        root, "z-opc-foundation-lead/003_辅助能力/maven-inventory/out/inventory.json")
+    if not os.path.exists(inv_path):
+        sys.exit("缺 maven-inventory 产物：%s\n"
+                 "⇒ 先跑 lead 的 003_辅助能力/maven-inventory（被依赖 TOP3 / 独立仓两组都从它现算，"
+                 "宁可不出站也不能抄旧数）" % inv_path)
+    with open(inv_path, encoding="utf-8") as fh:
+        inv = {r["name"]: r for r in json.load(fh)["repos"]}
+    fan, out_to = {}, {}
+    for name, r in inv.items():
+        fan[name], out_to[name] = set(), set()
+    for r in inv.values():
+        for e in r.get("dep_edges") or []:
+            if e["consumer"] == e["owner"]:
+                continue
+            fan.setdefault(e["owner"], set()).add(e["consumer"])
+            out_to.setdefault(e["consumer"], set()).add(e["owner"])
+    DEP_FANS = sorted(((o, len(cs)) for o, cs in fan.items() if cs),
+                      key=lambda x: (-x[1], x[0]))[:3]
+    ZERO_DEP = (sorted(n for n, r in inv.items() if r["is_maven"] and not out_to.get(n))
+                + sorted(n for n, r in inv.items()
+                         if not r["is_maven"] and n in manifest
+                         and manifest[n].get("type") != "meta"))
+
     # 实测扫描
     scan = {}
     for name in manifest:
@@ -338,6 +364,7 @@ def main():
             "artifactId": s.get("artifactId", ""),
             "version": s.get("version", ""),
             "published": mf.get("published_status", ""),
+            "maven": bool(inv.get(name, {}).get("is_maven", False)),
             "private": bool(mf.get("private", True)),
             "language": mf.get("language", ""),
             "sizeKB": mf.get("size_kb", 0),
@@ -371,6 +398,9 @@ def main():
     n_repos = len(projects)
     n_cloned = len(cloned)
     n_published = sum(1 for p in projects if p["published"] == "central")
+    # 「已发中央」有两类通道：Maven Central 与 npm @yuku123，混在一个数里就会把 z-render 说成 Java 构件
+    n_pub_npm = sum(1 for p in projects if p["published"] == "central" and not p["maven"])
+    n_pub_maven = n_published - n_pub_npm
     n_public = sum(1 for p in projects if not p["private"])
     n_java = sum(1 for p in cloned if "Java" in p["languages"])
     top_fan = max(DEP_FANS, key=lambda x: x[1]) if DEP_FANS else ("—", 0)
@@ -384,11 +414,13 @@ def main():
                     "密钥管理、对象存储、低代码、报表、脚本平台全部自研，而不是从 Spring Cloud / "
                     "Dubbo / Kafka / Milvus / Dify / Camunda 各拉一个现成件。%d 个仓库里 %d 个 "
                     "Java 仓已发 Maven Central (io.github.yuku123)，前端走 npm @yuku123。"
-                    % (n_repos, n_published),
+                    % (n_repos, n_pub_maven),
             "facts": [
                 {"k": "登记仓库", "v": str(n_repos),
                  "d": "1 lead + %d 产品 / 业务仓，本机已 clone %d" % (n_repos - 1, n_cloned)},
-                {"k": "已发中央", "v": str(n_published), "d": "Java 构件发布到 io.github.yuku123"},
+                {"k": "已发中央", "v": str(n_pub_maven),
+                 "d": "io.github.yuku123 上有 release 的 Java 仓；另有 %d 个走 npm @yuku123"
+                     % n_pub_npm},
                 {"k": "公开仓", "v": str(n_public),
                  "d": "按 lead manifest 的可见性字段，与 GitHub org API 同口径"},
                 {"k": "被依赖 TOP1", "v": "%d 仓" % top_fan[1],

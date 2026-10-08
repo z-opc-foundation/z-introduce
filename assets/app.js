@@ -77,7 +77,8 @@
   /* ── 仓库卡 ───────────────────────────────────────── */
   function badge(p) {
     if (!p.cloned) return '<span class="badge badge-nc">未 clone</span>';
-    if (p.published === "central") return '<span class="badge badge-pub">Central</span>';
+    if (p.published === "central") return '<span class="badge badge-pub">' +
+      (p.maven ? "Central" : "npm") + '</span>';
     if (p.published === "pending") return '<span class="badge badge-none">待发版</span>';
     if (p.published === "meta") return '<span class="badge badge-meta">meta</span>';
     return '<span class="badge badge-priv">不发版</span>';
@@ -152,7 +153,8 @@
     var grid = dcell("仓库名", esc(p.name)) +
       dcell("构件坐标", esc(p.artifactId || "—")) +
       dcell("本地版本", p.version ? "v" + esc(p.version) : "—") +
-      dcell("发布状态", p.published === "central" ? "已发 Maven Central" :
+      dcell("发布状态", p.published === "central" ?
+        (p.maven ? "已发 Maven Central" : "走 npm @yuku123，不发 Maven") :
         p.published === "pending" ? "待发版（未上 Central）" :
         p.published === "meta" ? "meta（不发版）" : "不发版") +
       dcell("可见性", p.private ? "private" : "public") +
