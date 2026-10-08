@@ -1,5 +1,5 @@
 /* z-desc · 站点交互
-   数据来自 window.ZDESC（由 tools/generate.py 从 41 仓实测生成）。 */
+   数据来自 window.ZDESC（由 tools/generate.py 从 manifest 登记的全部仓实测生成）。 */
 (function () {
   "use strict";
 
@@ -248,6 +248,11 @@
       '<p>所有版本、发布状态、依赖计数均来自 <strong>实测</strong>而非声明：' +
       "版本取自各仓 pom 现读，发布状态取自 Maven Central metadata，跨仓依赖取自全仓 pom 扫描。</p>";
     $("#genDate").textContent = D.generated;
+    // 静态 HTML 里的 46 只是 JS 未跑时的兜底，真实读数一律取实测数据
+    ["browseRepos", "subRepos", "footRepos"].forEach(function (id) {
+      var el = $("#" + id);
+      if (el) el.textContent = D.stats.repos;
+    });
   }
 
   /* ── 事件 ─────────────────────────────────────────── */

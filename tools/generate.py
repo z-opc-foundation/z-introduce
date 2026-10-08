@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 """z-desc 站点数据生成器。
 
-扫描同级目录下的 41 个 z-* 仓库，把实测元数据（README 摘要、模块树、
-语言分布、代码体量、发布状态）合并成 assets/data.js 供前端渲染。
+扫描 lead manifest 登记的全部 z-* 仓库（仓数不在本文写死，以 `len(projects)` 现量为准），
+把实测元数据（README 摘要、模块树、语言分布、代码体量、发布状态）合并成
+assets/data.js 供前端渲染。分层口径与 lead 的 docs/ORG_COGNITION.md 家族成员表一致。
 
     python3 tools/generate.py            # 生成
     python3 tools/generate.py --root ..  # 指定仓库根（默认上一级）
@@ -12,6 +13,7 @@
 任何"看起来像"但代码里不存在的功能，本生成器不做推断，只呈现实测字段。
 """
 import argparse
+import datetime
 import json
 import os
 import re
@@ -34,7 +36,7 @@ LAYERS = [
     {
         "id": "lead", "name": "组织治理", "en": "Meta",
         "tagline": "lead 不生产新功能产品，lead 管所有产品仓",
-        "desc": "组织的治理大脑：41 仓事实表 manifest.json、强制规范、10 个跨仓技能、"
+        "desc": "组织的治理大脑：全仓事实表 manifest.json、强制规范、10 个跨仓技能、"
                 "新机器一键恢复。三条设计原则是「数字必须现测」「所有脚本共享一份 manifest」"
                 "「零外部依赖（python3 + bash + git）」。",
         "repos": ["z-opc-foundation-lead"],
@@ -44,13 +46,14 @@ LAYERS = [
         "tagline": "一人公司的业务域，聚合在 z-opc 单体中台",
         "desc": "不再把每个业务域拆成独立微服务：一个 z-opc-main-starter 进程 + 一个 oc 库"
                 "承接全部能力，其余业务仓以 Central 坐标被依赖或独立部署。",
-        "repos": ["z-opc", "z-opcs", "z-asset", "z-product", "z-trade", "z-rpa", "z-ops"],
+        "repos": ["z-opc", "z-opcs", "z-asset", "z-product", "z-trade", "z-rpa", "z-ops",
+                  "z-team"],
     },
     {
         "id": "l2", "name": "L2 Boot 封装层", "en": "Boot",
         "tagline": "版本权威 + BOM + 全套 Starter",
         "desc": "z-boot 家族把第三方依赖版本锁进 BOM，并为每个 L3 中间件提供聚合 starter。"
-                "35 个 Java 仓的 parent 指向 z-boot-parent，业务仓只声明坐标不写版本。",
+                "组织内绝大多数 Java 仓的 parent 指向 z-boot-parent，业务仓只声明坐标不写版本。",
         "repos": ["z-boot"],
     },
     {
@@ -64,27 +67,29 @@ LAYERS = [
     {
         "id": "l3", "name": "L3 中间件层", "en": "Middleware",
         "tagline": "数据面模块只向下打 z-util / z-boot，不互依",
-        "desc": "自研基础设施群：缓存、消息队列、配置中心、调度、工作流、RPC、网关、图库、"
-                "向量库、知识库、4A、密钥、消息下发、对象存储、代码索引。"
+        "desc": "自研基础设施群：缓存、消息队列、配置中心、调度、工作流（Camunda 封装线 z-camuda "
+                "与自研 BPMN 线 z-wf 两条并存）、RPC、网关、图库、向量库、知识库、4A、密钥、"
+                "消息下发、对象存储、代码索引。"
                 "跨中间件的边全在 admin / web / registry 控制面。",
         "repos": ["z-util", "z-cache", "z-mq", "z-config", "z-schedule", "z-camuda", "z-rpc",
                   "z-gw", "z-graph", "z-vector", "z-kb", "z-ctc", "z-mist", "z-msg",
-                  "z-oss", "z-indexer"],
+                  "z-oss", "z-indexer", "z-wf"],
     },
     {
         "id": "incub", "name": "孵化层", "en": "Incubation",
         "tagline": "尚未接入 z-boot 聚合 starter 的独立产品仓",
-        "desc": "低代码、报表、脚本、元数据、任务协作、扩展点、Web IDE —— 已各自发版到 "
-                "Central，但还没被 z-boot 家族聚合。",
-        "repos": ["z-script", "z-lc", "z-webide", "z-meta", "z-task", "z-ext", "z-report"],
+        "desc": "低代码、报表、脚本、元数据、任务协作、扩展点、Web IDE、短网址、质量与测试资产 "
+                "—— 已各自发版到 Central，但还没被 z-boot 家族聚合。",
+        "repos": ["z-script", "z-lc", "z-webide", "z-meta", "z-task", "z-ext", "z-report",
+                  "z-surl", "z-qa"],
     },
     {
         "id": "frontend", "name": "前端与环境", "en": "Frontend & Env",
-        "tagline": "不走 Maven Central 的两条",
+        "tagline": "不走 Maven Central 的那一组",
         "desc": "z-render 是平台共享的前端渲染引擎（npm @yuku123/render）；z-env 把 MySQL / "
                 "Redis / Nacos / Kafka / MinIO / ES 等依赖层以「组件 + 版本 + 场景」三段式收口，"
-                "一条命令拉起、一条命令重置。",
-        "repos": ["z-render", "z-env"],
+                "一条命令拉起、一条命令重置；z-desc 是本站本身，纯静态无后端。",
+        "repos": ["z-render", "z-env", "z-desc"],
     },
 ]
 
@@ -111,9 +116,14 @@ TAGS = {
     "z-meta": "元数据管理平台", "z-task": "任务协作管理平台",
     "z-ext": "运行时可插拔扩展点框架", "z-report": "AI 拖拽式报表平台",
     "z-render": "平台共享前端渲染引擎", "z-env": "中间件编排环境仓",
+    "z-wf": "自研 BPMN 流程引擎（与 z-camuda 两条线并存）",
+    "z-surl": "短网址服务（短码 / 解析 / 命中统计）",
+    "z-qa": "质量与测试资产（用例集 / E2E / 套件编排）",
+    "z-team": "Z-Team 协同域独立仓（空占位，代码仍在 z-opc）",
+    "z-desc": "组织只读展示站（本站）",
 }
 
-# 已知问题，逐条来自 lead 仓 2026-10-03 审计的实测记录，不做推测
+# 已知问题，逐条取自 lead 仓各轮审计的实测记录（近期一轮为 2026-10-08），不做推测
 NOTES = {
     "z-boot": "⚠️ z-boot-parent 1.0.23 的 fleet 版本仍写 1.0.1，实际已发 1.0.2，消费方继承到落后一档",
     "z-asset": "⚠️ parent 仍是 com.zifang:z-opc 且 relativePath 指向不存在的文件，独立仓不可构建（P0）",
@@ -131,6 +141,10 @@ NOTES = {
     "z-ops": "GitHub 有仓，本机未 clone（manifest 已标 not_cloned）",
     "z-mcp": "当前零跨仓依赖，独立性最强",
     "z-opc": "reactor 模块已从 9 降到 4，被拆走的中间件改由 Central 坐标消费",
+    "z-wf": "⚠️ 同坐标 io.github.yuku123:z-wf 的 1.x 是 Camunda 线（现为 z-camuda 仓），"
+            "两仓无共同历史，消费方须锁 2.x",
+    "z-team": "空占位仓：代码仍在 z-opc 的 z-team 模块里，孵化尚未搬入",
+    "z-desc": "本站本身：无 pom、不发中央，数据由本生成器实测产出",
 }
 
 DEP_FANS = [("z-util", 28), ("z-boot", 22), ("z-agent-kernel", 7)]
@@ -352,30 +366,43 @@ def main():
         for k, v in p["languages"].items():
             langs[k] = langs.get(k, 0) + v
 
+    # 站内所有「仓数 / 已发中央 / 公开仓」读数一律由上面的实测集现算，
+    # 不在源码里写死数字——写死的那次就是它和 lead 对不上的那次。
+    n_repos = len(projects)
+    n_cloned = len(cloned)
+    n_published = sum(1 for p in projects if p["published"] == "central")
+    n_public = sum(1 for p in projects if not p["private"])
+    n_java = sum(1 for p in cloned if "Java" in p["languages"])
+    top_fan = max(DEP_FANS, key=lambda x: x[1]) if DEP_FANS else ("—", 0)
+
     data = {
         "org": {
             "name": "z-opc-foundation", "zhName": "一人公司技术基座",
-            "tagline": "41 个自研仓库，从工具库到 agent 平台的一整条自建栈",
+            "tagline": "%d 个自研仓库，从工具库到 agent 平台的一整条自建栈" % n_repos,
             "desc": "z-opc-foundation 是一个「一人公司」形态的技术组织：把一个中小团队日常需要的缓存、"
                     "消息队列、配置中心、调度、工作流、RPC、网关、图库、向量库、知识库、4A、"
                     "密钥管理、对象存储、低代码、报表、脚本平台全部自研，而不是从 Spring Cloud / "
-                    "Dubbo / Kafka / Milvus / Dify / Camunda 各拉一个现成件。41 个仓库里 35 个 Java "
-                    "仓已发 Maven Central (io.github.yuku123)，前端走 npm @yuku123。",
+                    "Dubbo / Kafka / Milvus / Dify / Camunda 各拉一个现成件。%d 个仓库里 %d 个 "
+                    "Java 仓已发 Maven Central (io.github.yuku123)，前端走 npm @yuku123。"
+                    % (n_repos, n_published),
             "facts": [
-                {"k": "登记仓库", "v": "41", "d": "1 lead + 40 产品 / 业务仓，本机已 clone 40"},
-                {"k": "已发中央", "v": "35", "d": "Java 构件发布到 io.github.yuku123"},
-                {"k": "公开仓", "v": "11", "d": "util / agent / cache / graph / gw / kb / mist / mq / msg / rpc / vector"},
-                {"k": "被依赖 TOP1", "v": "28 仓", "d": "z-util 是事实上的第一底座"},
+                {"k": "登记仓库", "v": str(n_repos),
+                 "d": "1 lead + %d 产品 / 业务仓，本机已 clone %d" % (n_repos - 1, n_cloned)},
+                {"k": "已发中央", "v": str(n_published), "d": "Java 构件发布到 io.github.yuku123"},
+                {"k": "公开仓", "v": str(n_public),
+                 "d": "按 lead manifest 的可见性字段，与 GitHub org API 同口径"},
+                {"k": "被依赖 TOP1", "v": "%d 仓" % top_fan[1],
+                 "d": "%s 是事实上的第一底座" % top_fan[0]},
             ],
         },
         "stats": {
-            "repos": len(projects), "cloned": len(cloned),
+            "repos": n_repos, "cloned": n_cloned,
             "codeFiles": sum(p["codeFiles"] for p in cloned),
             "modules": sum(len(p["modules"]) for p in projects),
             "commits": sum(p["commits"] for p in cloned),
-            "javaRepos": sum(1 for p in cloned if "Java" in p["languages"]),
-            "published": sum(1 for p in projects if p["published"] == "central"),
-            "publicRepos": sum(1 for p in projects if not p["private"]),
+            "javaRepos": n_java,
+            "published": n_published,
+            "publicRepos": n_public,
             "withUi": sum(1 for p in projects if p["frontend"]),
         },
         "languages": [{"name": k, "count": v} for k, v in
@@ -383,7 +410,7 @@ def main():
         "layers": LAYERS,
         "depFans": [{"name": n, "count": c} for n, c in DEP_FANS],
         "zeroDep": ZERO_DEP,
-        "generated": "2026-10-03",
+        "generated": datetime.date.today().isoformat(),
         "projects": projects,
     }
 
@@ -393,7 +420,8 @@ def main():
         p = os.path.join(out_dir, fname)
         with open(p, "w", encoding="utf-8") as fh:
             if header:
-                fh.write("/* 由 tools/generate.py 从 41 个仓库实测生成，勿手改 */\n" + header)
+                fh.write("/* 由 tools/generate.py 从 %d 个仓库实测生成，勿手改 */\n"
+                         % n_repos + header)
             fh.write(payload)
             if header:
                 fh.write(";\n")
@@ -404,7 +432,14 @@ def main():
     miss = [p["name"] for p in projects if not p["summary"]]
     print("   无 README 摘要:", "、".join(miss) or "无")
     un = [p["name"] for p in projects if p["layer"] == "other"]
+    no_tag = [p["name"] for p in projects if p["name"] not in TAGS]
     print("   未归层:", "、".join(un) or "无")
+    print("   无一句话定位:", "、".join(no_tag) or "无")
+    # LAYERS / TAGS 是手维护的：manifest 补登记新仓而这里不拦，站点就会
+    # 交付「卡片有仓、分层表里没有」的半旧读数（46 仓那轮就是这么漏了 5 仓）。
+    gap = sorted(set(un) | set(no_tag))
+    if gap:
+        sys.exit("❌ %d 仓未被 LAYERS/TAGS 覆盖: %s —— 先补分类再生成" % (len(gap), "、".join(gap)))
 
 
 if __name__ == "__main__":

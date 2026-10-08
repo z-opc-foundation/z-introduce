@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>z-opc-foundation · 一人公司技术基座</title>
-<meta name="description" content="z-opc-foundation 组织的 41 个自研仓库总览：Agent 家族、中间件层、Boot 封装层、业务域与孵化项目。">
+<meta name="description" content="z-opc-foundation 组织全部自研仓库的实测总览：Agent 家族、中间件层、Boot 封装层、业务域与孵化项目。">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -43,7 +43,7 @@
 
       <div class="hero-actions">
         <a class="btn btn-primary" href="#repos">
-          浏览 41 个仓库
+          浏览 <span id="browseRepos">46</span> 个仓库
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
         <a class="btn btn-ghost" href="#architecture">看分层架构</a>
@@ -91,8 +91,8 @@
         <p class="sec-kicker">Repositories</p>
         <h2 class="sec-title">仓库总览</h2>
         <p class="sec-sub">
-          41 个登记仓库，每个都标注了它的分层归属、发布状态、模块数与代码体量。
-          摘要摘自各仓 README，注记为 lead 仓 2026-10-03 审计的实测结论。
+          <span id="subRepos">46</span> 个登记仓库，每个都标注了它的分层归属、发布状态、模块数与代码体量。
+          摘要摘自各仓 README，注记为 lead 仓逐轮审计的实测结论。
         </p>
       </header>
 
@@ -152,7 +152,7 @@
         <div class="side-block">
           <h4>事实来源</h4>
           <ul class="plain">
-            <li><code>manifest.json</code> 41 仓登记表</li>
+            <li><code>manifest.json</code> 全仓登记表</li>
             <li><code>README.md</code> 全仓版本表（逐仓实测）</li>
             <li>各仓 <code>README.md</code> / <code>pom.xml</code></li>
             <li>本机磁盘 clone 状态与 git 提交数</li>
@@ -166,7 +166,7 @@
 <footer class="foot">
   <div class="wrap foot-in">
     <p>
-      数据于 <strong id="genDate"></strong> 从 41 个仓库实测生成 ·
+      数据于 <strong id="genDate"></strong> 从 <strong id="footRepos">46</strong> 个仓库实测生成 ·
       <code>z-desc/tools/generate.py</code> 可复现
     </p>
     <p class="foot-dim">本页面为只读展示，代码与源码版权归属各原仓。</p>
