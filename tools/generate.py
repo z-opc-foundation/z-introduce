@@ -80,7 +80,7 @@ LAYERS = [
         "tagline": "尚未接入 z-boot 聚合 starter 的独立产品仓",
         "desc": "低代码、报表、脚本、元数据、任务协作、扩展点、Web IDE、短网址、质量与测试资产 "
                 "—— 已各自发版到 Central，但还没被 z-boot 家族聚合。",
-        "repos": ["z-script", "z-lc", "z-webide", "z-meta", "z-task", "z-ext", "z-report",
+        "repos": ["z-script", "z-lc", "z-webide", "z-meta", "z-task", "z-ext",
                   "z-surl", "z-qa"],
     },
     {
@@ -114,7 +114,7 @@ TAGS = {
     "z-indexer": "代码索引服务", "z-script": "多 DSL 脚本平台 + Mock Server",
     "z-lc": "低代码平台（通用 CRUD 引擎）", "z-webide": "Web IDE 后端（IDE 即服务）",
     "z-meta": "元数据管理平台", "z-task": "任务协作管理平台",
-    "z-ext": "运行时可插拔扩展点框架", "z-report": "AI 拖拽式报表平台",
+    "z-ext": "运行时可插拔扩展点框架",
     "z-render": "平台共享前端渲染引擎", "z-env": "中间件编排环境仓",
     "z-wf": "自研 BPMN 流程引擎（与 z-camuda 两条线并存）",
     "z-surl": "短网址服务（短码 / 解析 / 命中统计）",
@@ -291,7 +291,8 @@ def main():
     if not os.path.exists(manifest_path):
         sys.exit("找不到 manifest.json：%s" % manifest_path)
     with open(manifest_path, encoding="utf-8") as fh:
-        manifest = {r["name"]: r for r in json.load(fh)["repositories"]}
+        manifest = {r["name"]: r for r in json.load(fh)["repositories"]
+                    if r.get("status") != "retired"}
 
     # 跨仓依赖图现算：消费面 = 去重后的 (owner, artifactId, version) 边里 owner→consumer 的仓数
     inv_path = os.path.join(
