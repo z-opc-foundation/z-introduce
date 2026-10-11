@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""z-desc 站点上线前凭据自查：确认 data.json 不含口令、密钥、内网地址或本地绝对路径。"""
+"""z-introduce 站点上线前凭据自查：确认 data.json 不含口令、密钥、内网地址或本地绝对路径。"""
 import json
 import re
 import sys

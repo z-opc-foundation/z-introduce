@@ -1,4 +1,4 @@
-/* z-desc · 站点交互
+/* z-introduce · 站点交互
    数据来自 window.ZDESC（由 tools/generate.py 从 manifest 登记的全部仓实测生成）。 */
 (function () {
   "use strict";

@@ -1,4 +1,4 @@
-# z-desc
+# z-introduce
 
 > z-opc-foundation 组织的仓库展示站（当前登记 **46 仓**，2026-10-08 按 lead manifest 实测）。
 > 纯静态，无后端、无构建步骤。

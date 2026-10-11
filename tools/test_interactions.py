@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""z-desc 交互回归：在真实浏览器里驱动搜索/筛选/详情抽屉，断言 DOM 实际变化。
+"""z-introduce 交互回归：在真实浏览器里驱动搜索/筛选/详情抽屉，断言 DOM 实际变化。
 
 为什么需要这个：Node 单测只覆盖了 match() 纯函数，验证不了事件委托、
 防抖重渲染、抽屉开关在浏览器里是否真的接线成功。
@@ -16,7 +16,7 @@ import sys
 import tempfile
 import time
 
-SITE = "/Users/zifang/workplace/ceo_workplace/z-opc-foundation/z-desc"
+SITE = "/Users/zifang/workplace/ceo_workplace/z-opc-foundation/z-introduce"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 SHOT = "/tmp/zdesc_shots/30-interactions.png"
 

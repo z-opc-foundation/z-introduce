@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""z-desc 站点数据生成器。
+"""z-introduce 站点数据生成器。
 
 扫描 lead manifest 登记的全部 z-* 仓库（仓数不在本文写死，以 `len(projects)` 现量为准），
 把实测元数据（README 摘要、模块树、语言分布、代码体量、发布状态）合并成
@@ -88,8 +88,8 @@ LAYERS = [
         "tagline": "不走 Maven Central 的那一组",
         "desc": "z-render 是平台共享的前端渲染引擎（npm @yuku123/render）；z-env 把 MySQL / "
                 "Redis / Nacos / Kafka / MinIO / ES 等依赖层以「组件 + 版本 + 场景」三段式收口，"
-                "一条命令拉起、一条命令重置；z-desc 是本站本身，纯静态无后端。",
-        "repos": ["z-render", "z-env", "z-desc"],
+                "一条命令拉起、一条命令重置；z-introduce 是本站本身，纯静态无后端。",
+        "repos": ["z-render", "z-env", "z-introduce"],
     },
 ]
 
@@ -120,7 +120,7 @@ TAGS = {
     "z-surl": "短网址服务（短码 / 解析 / 命中统计）",
     "z-qa": "质量与测试资产（用例集 / E2E / 套件编排）",
     "z-team": "Z-Team 协同域独立仓（空占位，代码仍在 z-opc）",
-    "z-desc": "组织只读展示站（本站）",
+    "z-introduce": "组织只读展示站（本站）",
 }
 
 # 已知问题，逐条取自 lead 仓各轮审计的实测记录（近期一轮为 2026-10-08），不做推测
@@ -145,7 +145,7 @@ NOTES = {
     "z-wf": "⚠️ 同坐标 io.github.yuku123:z-wf 的 1.x 是 Camunda 线（现为 z-camuda 仓），"
             "两仓无共同历史，消费方须锁 2.x",
     "z-team": "空占位仓：代码仍在 z-opc 的 z-team 模块里，孵化尚未搬入",
-    "z-desc": "本站本身：无 pom、不发中央，数据由本生成器实测产出",
+    "z-introduce": "本站本身：无 pom、不发中央，数据由本生成器实测产出",
 }
 
 # 被依赖 TOP3 与「独立仓」两组读数一律在 main() 里现算自 lead 的 maven-inventory 产物，
