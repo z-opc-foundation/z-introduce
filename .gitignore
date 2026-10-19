@@ -15,3 +15,5 @@ __pycache__/
 
 # 本地验证产物
 /tmp_shots/
+# ===== lead 002 规范：临时/运行态件一律写 <仓>/.cache/，且 .cache 必须被 ignore =====
+/.cache/
