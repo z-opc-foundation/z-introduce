@@ -60,8 +60,8 @@ LAYERS = [
         "id": "agent", "name": "L3 Agent 家族", "en": "Agent",
         "tagline": "从抽象基座到本地应用的一整条 agent 链路",
         "desc": "z-agent-kernel 把消息 / 工具 / 记忆 / provider / 会话契约一次收口；上层 "
-                "z-llm、z-mcp、z-skill、z-bot、z-agent-proxy、z-agent 各自只声明自己用到的那几个坐标。",
-        "repos": ["z-agent-kernel", "z-agent", "z-llm", "z-mcp", "z-skill", "z-bot",
+                "z-llm-gateway、z-mcp、z-skill、z-bot、z-agent-proxy、z-agent 各自只声明自己用到的那几个坐标。",
+        "repos": ["z-agent-kernel", "z-agent", "z-llm-gateway", "z-mcp", "z-skill", "z-bot",
                   "z-agent-proxy"],
     },
     {
@@ -73,7 +73,7 @@ LAYERS = [
                 "跨中间件的边全在 admin / web / registry 控制面。",
         "repos": ["z-util", "z-cache", "z-mq", "z-config", "z-schedule", "z-camuda", "z-rpc",
                   "z-gw", "z-graph", "z-vector", "z-kb", "z-ctc", "z-mist", "z-msg",
-                  "z-oss", "z-indexer", "z-wf"],
+                  "z-oss", "z-indexer", "z-wf", "z-observer"],
     },
     {
         "id": "incub", "name": "孵化层", "en": "Incubation",
@@ -86,10 +86,11 @@ LAYERS = [
     {
         "id": "frontend", "name": "前端与环境", "en": "Frontend & Env",
         "tagline": "不走 Maven Central 的那一组",
-        "desc": "z-render 是平台共享的前端渲染引擎（npm @yuku123/render）；z-env 把 MySQL / "
-                "Redis / Nacos / Kafka / MinIO / ES 等依赖层以「组件 + 版本 + 场景」三段式收口，"
-                "一条命令拉起、一条命令重置；z-introduce 是本站本身，纯静态无后端。",
-        "repos": ["z-render", "z-env", "z-introduce"],
+        "desc": "z-frontend-render 是平台共享的前端渲染引擎（npm @yuku123/z-frontend-render）；"
+                "z-frontend-common 是组织共享的前端组件库（npm @yuku123/z-frontend-common）；"
+                "z-env 把 MySQL / Redis / Nacos / Kafka / MinIO / ES 等依赖层以「组件 + 版本 + 场景」"
+                "三段式收口，一条命令拉起、一条命令重置；z-introduce 是本站本身，纯静态无后端。",
+        "repos": ["z-frontend-render", "z-frontend-common", "z-env", "z-introduce"],
     },
 ]
 
@@ -101,7 +102,7 @@ TAGS = {
     "z-trade": "交易域 order / payment / usage", "z-rpa": "RPA（复刻影刀）",
     "z-ops": "个人公司运维平台", "z-boot": "启动器 / Starter / BOM",
     "z-agent-kernel": "Agent 框架基座（25 子模块）", "z-agent": "云端 Agent SaaS 平台",
-    "z-llm": "中心化 LLM 网关", "z-mcp": "MCP 协议桥接与注册中心",
+    "z-llm-gateway": "中心化 LLM 网关", "z-mcp": "MCP 协议桥接与注册中心",
     "z-skill": "Skill 注册中心 + Marketplace", "z-bot": "本地 agent 应用（CLI + HTTP）",
     "z-agent-proxy": "三方 agent 适配代理", "z-util": "多模块工具库集（第一底座）",
     "z-cache": "Redis 协议兼容分布式缓存", "z-mq": "NameServer + Broker 消息队列",
@@ -115,7 +116,10 @@ TAGS = {
     "z-lc": "低代码平台（通用 CRUD 引擎）", "z-webide": "Web IDE 后端（IDE 即服务）",
     "z-meta": "元数据管理平台", "z-task": "任务协作管理平台",
     "z-ext": "运行时可插拔扩展点框架",
-    "z-render": "平台共享前端渲染引擎", "z-env": "中间件编排环境仓",
+    "z-frontend-render": "平台共享前端渲染引擎",
+    "z-frontend-common": "组织共享前端组件库",
+    "z-observer": "可观测性域独立仓",
+    "z-env": "中间件编排环境仓",
     "z-wf": "自研 BPMN 流程引擎（与 z-camuda 两条线并存）",
     "z-surl": "短网址服务（短码 / 解析 / 命中统计）",
     "z-qa": "质量与测试资产（用例集 / E2E / 套件编排）",
@@ -136,7 +140,7 @@ NOTES = {
     "z-webide": "⚠️ 仓名 z-webide ≠ 构件名 z-tool-webide",
     "z-task": "是任务管理而非定时调度，仓内无调度器实现",
     "z-env": "无 pom，属编排仓而非 Java 构件",
-    "z-render": "发布渠道是 npm @yuku123/render，不走 Central",
+    "z-frontend-render": "发布渠道是 npm @yuku123/z-frontend-render，不走 Central",
     "z-ops": "服务端产品仓，按 README 政策不发中央（repo1 根构件 404 实测 2026-10-08）；"
             "除刻意独立 POM 树的 z-boot / z-util 外，它是唯一没接 z-boot-parent 的 Maven 仓",
     "z-mcp": "⚠️ z-mcp-starter 以 1.0.0-SNAPSHOT 引 z-agent-center-core（provided），"
@@ -447,6 +451,17 @@ def main():
         "projects": projects,
     }
 
+    # LAYERS / TAGS 是手维护的：manifest 补登记新仓而这里不拦，站点就会
+    # 交付「卡片有仓、分层表里没有」的半旧读数（46 仓那轮就是这么漏了 5 仓）。
+    #
+    # 校验必须走在**写盘之前**：先写后校验的话，半旧数据已经落进 assets/ 了，
+    # README「不会产出一个『卡片有仓、分层表里没有』的半旧站点」这句话就是假的。
+    un = [p["name"] for p in projects if p["layer"] == "other"]
+    no_tag = [p["name"] for p in projects if p["name"] not in TAGS]
+    gap = sorted(set(un) | set(no_tag))
+    if gap:
+        sys.exit("❌ %d 仓未被 LAYERS/TAGS 覆盖: %s —— 先补分类再生成" % (len(gap), "、".join(gap)))
+
     os.makedirs(out_dir, exist_ok=True)
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
     for fname, header in (("data.js", "window.ZDESC = "), ("data.json", "")):
@@ -464,15 +479,8 @@ def main():
         data["stats"]["modules"], data["stats"]["commits"]))
     miss = [p["name"] for p in projects if not p["summary"]]
     print("   无 README 摘要:", "、".join(miss) or "无")
-    un = [p["name"] for p in projects if p["layer"] == "other"]
-    no_tag = [p["name"] for p in projects if p["name"] not in TAGS]
     print("   未归层:", "、".join(un) or "无")
     print("   无一句话定位:", "、".join(no_tag) or "无")
-    # LAYERS / TAGS 是手维护的：manifest 补登记新仓而这里不拦，站点就会
-    # 交付「卡片有仓、分层表里没有」的半旧读数（46 仓那轮就是这么漏了 5 仓）。
-    gap = sorted(set(un) | set(no_tag))
-    if gap:
-        sys.exit("❌ %d 仓未被 LAYERS/TAGS 覆盖: %s —— 先补分类再生成" % (len(gap), "、".join(gap)))
 
 
 if __name__ == "__main__":
