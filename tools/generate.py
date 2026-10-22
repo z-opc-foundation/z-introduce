@@ -47,7 +47,7 @@ LAYERS = [
         "desc": "不再把每个业务域拆成独立微服务：一个 z-opc-main-starter 进程 + 一个 oc 库"
                 "承接全部能力，其余业务仓以 Central 坐标被依赖或独立部署。",
         "repos": ["z-opc", "z-opcs", "z-asset", "z-product", "z-trade", "z-rpa", "z-ops",
-                  "z-team"],
+                  "z-team", "z-biz"],
     },
     {
         "id": "l2", "name": "L2 Boot 封装层", "en": "Boot",
@@ -69,11 +69,11 @@ LAYERS = [
         "tagline": "数据面模块只向下打 z-util / z-boot，不互依",
         "desc": "自研基础设施群：缓存、消息队列、配置中心、调度、工作流（Camunda 封装线 z-camuda "
                 "与自研 BPMN 线 z-wf 两条并存）、RPC、网关、图库、向量库、知识库、4A、密钥、"
-                "消息下发、对象存储、代码索引。"
+                "消息下发、对象存储、代码索引、数据源管控（z-dms）、ETL 引擎（z-etl）。"
                 "跨中间件的边全在 admin / web / registry 控制面。",
         "repos": ["z-util", "z-cache", "z-mq", "z-config", "z-schedule", "z-camuda", "z-rpc",
                   "z-gw", "z-graph", "z-vector", "z-kb", "z-ctc", "z-mist", "z-msg",
-                  "z-oss", "z-indexer", "z-wf", "z-observer"],
+                  "z-oss", "z-indexer", "z-wf", "z-observer", "z-dms", "z-etl"],
     },
     {
         "id": "incub", "name": "孵化层", "en": "Incubation",
@@ -125,6 +125,9 @@ TAGS = {
     "z-qa": "质量与测试资产（用例集 / E2E / 套件编排）",
     "z-team": "Z-Team 协同域独立仓（空占位，代码仍在 z-opc）",
     "z-introduce": "组织只读展示站（本站）",
+    "z-biz": "商务外壳域（客户档案 / 合同 / 票据 / 对账）",
+    "z-dms": "数据源管控底座（凭据只存 z-mist 引用）",
+    "z-etl": "ETL 引擎域（reader → transform → writer）",
 }
 
 # 已知问题，逐条取自 lead 仓各轮审计的实测记录（近期一轮为 2026-10-08），不做推测
@@ -150,6 +153,12 @@ NOTES = {
             "两仓无共同历史，消费方须锁 2.x",
     "z-team": "空占位仓：代码仍在 z-opc 的 z-team 模块里，孵化尚未搬入",
     "z-introduce": "本站本身：无 pom、不发中央，数据由本生成器实测产出",
+    "z-biz": "⚠️ 2026-10-22 新建（manifest 现读）：远端仓尚未创建（GitHub 404），本地仓已建好；"
+            "不发中央（groupId com.zifang 同 z-trade 口径）",
+    "z-dms": "⚠️ 2026-10-22 新建（manifest 现读）：远端仓尚未创建（GitHub 404），本地仓已建好；"
+            "中央 profile 已就位但未激活",
+    "z-etl": "⚠️ 2026-10-22 新建（manifest 现读）：远端仓尚未创建（GitHub 404），本地仓已建好；"
+            "中央 profile 未激活",
 }
 
 # 被依赖 TOP3 与「独立仓」两组读数一律在 main() 里现算自 lead 的 maven-inventory 产物，
