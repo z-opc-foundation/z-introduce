@@ -1,6 +1,6 @@
 # z-introduce
 
-> z-opc-foundation 组织的仓库展示站（当前登记 **47 仓**，2026-10-20 按 lead manifest 实测）。
+> z-opc-foundation 组织的仓库展示站（当前登记 **51 仓**，2026-10-26 按 lead manifest 实测）。
 > 纯静态，无后端、无构建步骤。
 
 本仓不是业务仓，是**只读展示工程**：把组织旗下全部登记仓库的实测元数据
@@ -24,7 +24,7 @@ python3 tools/generate.py
 ```
 
 它会读取 `../z-opc-foundation-lead/003_辅助能力/bootstrap/manifest.json`
-拿到全仓事实表（当前 47 条），再逐仓实测 README / pom / 模块目录 / git 状态，
+拿到全仓事实表（当前 51 条），再逐仓实测 README / pom / 模块目录 / git 状态，
 输出 `assets/data.js`（页面用）与 `assets/data.json`（便于二次加工）。
 
 新增仓库后重跑一次即可，卡片会自动收录；但分层表 `LAYERS` 与一句话定位 `TAGS`
@@ -75,7 +75,7 @@ input 事件、打开抽屉、按 Esc，结果渲染成整页文字后截图。
 | 注记（⚠️ 已知问题） | lead 仓审计结论（逐条自带实测日期） |
 
 `z-report` 已退役（lead manifest `status=retired`），生成时整仓排除、不进站点。
-当前快照 **47 仓全部已 clone 且都有 README 摘要**（`z-asset` / `z-ops` 的缺口是 2026-10-03
+当前快照 **51 仓全部已 clone 且都有 README 摘要**（`z-asset` / `z-ops` 的缺口是 2026-10-03
 快照时的事，现已补上）；真出现摘要缺失时站点如实标注而非编造。
 
 ## 已知边界
