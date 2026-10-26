@@ -61,7 +61,7 @@ LAYERS = [
         "tagline": "从抽象基座到本地应用的一整条 agent 链路",
         "desc": "z-agent-kernel 把消息 / 工具 / 记忆 / provider / 会话契约一次收口；上层 "
                 "z-llm-gateway、z-mcp、z-skill、z-bot、z-agent-proxy、z-agent 各自只声明自己用到的那几个坐标。",
-        "repos": ["z-agent-kernel", "z-agent", "z-llm-gateway", "z-mcp", "z-skill", "z-bot",
+        "repos": ["z-agent-kernel", "z-agent", "z-llm-gateway", "z-llm-agent", "z-mcp", "z-skill", "z-bot",
                   "z-agent-proxy"],
     },
     {
@@ -102,7 +102,7 @@ TAGS = {
     "z-trade": "交易域 order / payment / usage", "z-rpa": "RPA（复刻影刀）",
     "z-ops": "个人公司运维平台", "z-boot": "启动器 / Starter / BOM",
     "z-agent-kernel": "Agent 框架基座（25 子模块）", "z-agent": "云端 Agent SaaS 平台",
-    "z-llm-gateway": "中心化 LLM 网关", "z-mcp": "MCP 协议桥接与注册中心",
+    "z-llm-gateway": "中心化 LLM 网关", "z-llm-agent": "CLI Agent 服务化（对话化本机 CLI）", "z-mcp": "MCP 协议桥接与注册中心",
     "z-skill": "Skill 注册中心 + Marketplace", "z-bot": "本地 agent 应用（CLI + HTTP）",
     "z-agent-proxy": "三方 agent 适配代理", "z-util": "多模块工具库集（第一底座）",
     "z-cache": "Redis 协议兼容分布式缓存", "z-mq": "NameServer + Broker 消息队列",
