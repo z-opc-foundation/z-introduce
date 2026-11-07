@@ -61,7 +61,8 @@ LAYERS = [
         "tagline": "从抽象基座到本地应用的一整条 agent 链路",
         "desc": "z-agent-kernel 把消息 / 工具 / 记忆 / provider / 会话契约一次收口；上层 "
                 "z-llm-gateway、z-mcp、z-skill、z-bot、z-agent 各自只声明自己用到的那几个坐标。",
-        "repos": ["z-agent-kernel", "z-agent", "z-llm-gateway", "z-llm-agent", "z-llm-msghub", "z-mcp", "z-skill", "z-bot"],
+        "repos": ["z-agent-kernel", "z-agent", "z-agent-proxy", "z-llm-gateway", "z-llm-agent",
+                  "z-llm-msghub", "z-mcp", "z-skill", "z-bot"],
     },
     {
         "id": "l3", "name": "L3 中间件层", "en": "Middleware",
@@ -75,12 +76,22 @@ LAYERS = [
                   "z-oss", "z-indexer", "z-wf", "z-observer", "z-dms", "z-etl"],
     },
     {
+        "id": "cognition", "name": "认知与数据安全层", "en": "Cognition & Security",
+        "tagline": "认知域建模 + 识别→脱敏→水印→审计四段流水线",
+        "desc": "认知域（z-cognition / z-ontology）负责把知识组织成有类型、可推理的形状；"
+                "数据安全线以 z-biz-security 为编排层，串起敏感识别（z-sense）、"
+                "脱敏遮蔽（z-mask）、水印溯源（z-watermark）与合规留痕（z-audit）四段。"
+                "两线各仓均以 -core 形式被业务仓依赖，不互造编排中心。",
+        "repos": ["z-cognition", "z-ontology", "z-biz-security",
+                  "z-sense", "z-mask", "z-watermark", "z-audit"],
+    },
+    {
         "id": "incub", "name": "孵化层", "en": "Incubation",
         "tagline": "尚未接入 z-boot 聚合 starter 的独立产品仓",
         "desc": "低代码、报表、脚本、元数据、任务协作、扩展点、Web IDE、短网址、质量与测试资产 "
                 "—— 已各自发版到 Central，但还没被 z-boot 家族聚合。",
         "repos": ["z-script", "z-lc", "z-webide", "z-meta", "z-task", "z-ext",
-                  "z-surl", "z-qa"],
+                  "z-surl", "z-qa", "z-report"],
     },
     {
         "id": "frontend", "name": "前端与环境", "en": "Frontend & Env",
@@ -128,6 +139,18 @@ TAGS = {
     "z-biz": "商务外壳域（客户档案 / 合同 / 票据 / 对账）",
     "z-dms": "数据源管控底座（凭据只存 z-mist 引用）",
     "z-etl": "ETL 引擎域（reader → transform → writer）",
+    # 2026-11-07 补齐：manifest 60 仓，下面 9 仓此前既不在 LAYERS 也不在 TAGS，
+    # 导致 generate.py 的分类闸门实算 9 仓缺口、重生成展示站当场 sys.exit。
+    # 一句话定位取自各仓 README 首段；manifest 名与磁盘目录名不一致的如实标注。
+    "z-agent-proxy": "三方 coding agent 适配代理（Aider / Cursor → z-agent-kernel）",
+    "z-cognition": "认知域 · 认知客户端与推理接入",
+    "z-ontology": "本体层 · TBox/ABox + RDFS 子集推理 + 一致性校验",
+    "z-biz-security": "数据安全域编排层（磁盘仓名 z-security；场景→策略→四段流水线）",
+    "z-sense": "敏感识别与分类分级引擎",
+    "z-mask": "脱敏与遮蔽引擎",
+    "z-watermark": "水印引擎（显式 / 隐写 / 盲水印溯源）",
+    "z-audit": "审计与合规留痕（事件模型 + 哈希链 + 留存期）",
+    "z-report": "报表域（manifest 已登记，磁盘仓尚未落盘）",
 }
 
 # 已知问题，逐条取自 lead 仓各轮审计的实测记录（近期一轮为 2026-10-08），不做推测
@@ -468,8 +491,27 @@ def main():
     un = [p["name"] for p in projects if p["layer"] == "other"]
     no_tag = [p["name"] for p in projects if p["name"] not in TAGS]
     gap = sorted(set(un) | set(no_tag))
-    if gap:
-        sys.exit("❌ %d 仓未被 LAYERS/TAGS 覆盖: %s —— 先补分类再生成" % (len(gap), "、".join(gap)))
+    # 反向只告警、不阻断：manifest 里标 retired 的仓留在分类表是预期（历史分层），
+    # 生成器已按 status != retired 过滤，它们不会变成幽灵卡片。
+    known = {p["name"] for p in projects}
+    ghost = sorted((set(layer_of) | set(TAGS)) - known)
+    if ghost:
+        print("ℹ️ %d 个分类项不在本次生成集（retired 或已从 manifest 移除），已跳过: %s"
+              % (len(ghost), "、".join(ghost)))
+    seen = {}
+    dup = []
+    for layer in LAYERS:
+        for repo in layer["repos"]:
+            seen[repo] = seen.get(repo, 0) + 1
+    dup = sorted(r for r, c in seen.items() if c > 1)
+    if gap or dup:
+        problems = []
+        if gap:
+            problems.append("%d 仓未被 LAYERS/TAGS 覆盖: %s" % (len(gap), "、".join(gap)))
+        if dup:
+            problems.append("%d 个仓被重复分到多层: %s" % (len(dup), "、".join(dup)))
+        sys.exit("❌ 分类与 manifest 不一致，先改 tools/generate.py 的 LAYERS / TAGS 再生成：\n   - "
+                 + "\n   - ".join(problems))
 
     os.makedirs(out_dir, exist_ok=True)
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
