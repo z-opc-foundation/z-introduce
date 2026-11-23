@@ -34,8 +34,8 @@
     <div class="wrap hero-in">
       <p class="eyebrow"><span class="dot"></span>One Company · 自建全栈基础设施</p>
       <h1 class="hero-title">
-        <span class="l1">把中间件<span class="accent">全部自研</span></span>
-        <span class="l2">而不是各拉一个<span class="strike">现成件</span></span>
+        <span class="l1">一人公司的<span class="accent">技术基座</span></span>
+        <span class="l2">从业务应用到<span class="accent">基础设施</span></span>
       </h1>
       <p class="hero-sub" id="heroDesc"></p>
 
@@ -43,7 +43,7 @@
 
       <div class="hero-actions">
         <a class="btn btn-primary" href="#repos">
-          浏览 <span id="browseRepos">46</span> 个仓库
+          浏览 <span id="browseRepos">—</span> 个仓库
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
         <a class="btn btn-ghost" href="#architecture">看分层架构</a>
@@ -56,10 +56,10 @@
     <div class="wrap">
       <header class="sec-head">
         <p class="sec-kicker">Architecture</p>
-        <h2 class="sec-title">七层架构</h2>
+        <h2 class="sec-title">仓库分层</h2>
         <p class="sec-sub">
-          分层口径取自 lead 仓的「全仓版本表」—— 事实表的唯一来源。
-          上层依赖下层，数据面模块之间不互依；跨中间件的耦合全部收在控制面。
+          仓库集合取自 lead manifest 的非退役条目，展示分组参照各仓 README 维护。
+          认知与数据安全按主题合组；分组不等于部署拓扑，也不代表发布成熟度。
         </p>
       </header>
       <div class="layers" id="layerList"></div>
@@ -72,12 +72,12 @@
       <div class="dep-grid">
         <div class="dep-card">
           <h3 class="dep-h">被依赖 TOP 3</h3>
-          <p class="dep-sub">全仓 pom <code>&lt;dependency&gt;</code> 实扫，坐标归一到 owning 仓</p>
+          <p class="dep-sub">已有 maven-inventory 快照，按当前登记集合筛选，坐标归一到 owning 仓</p>
           <div id="depFans"></div>
         </div>
         <div class="dep-card">
-          <h3 class="dep-h">零跨仓依赖</h3>
-          <p class="dep-sub">实扫无跨仓出边的 Maven 仓，加无 pom 的非 Maven 产品仓（lead 与本站这类 meta 仓不计）</p>
+          <h3 class="dep-h">零 Maven 跨仓依赖</h3>
+          <p class="dep-sub">依赖快照中无跨仓出边的 Maven 仓；非 Maven 仓不在此统计范围</p>
           <div class="chips" id="zeroDep"></div>
         </div>
       </div>
@@ -91,8 +91,8 @@
         <p class="sec-kicker">Repositories</p>
         <h2 class="sec-title">仓库总览</h2>
         <p class="sec-sub">
-          <span id="subRepos">46</span> 个登记仓库，每个都标注了它的分层归属、发布状态、模块数与代码体量。
-          摘要摘自各仓 README，注记为 lead 仓逐轮审计的实测结论。
+          <span id="subRepos">—</span> 个登记仓库，每个都标注了它的分层归属、发布状态、模块数与代码体量。
+          摘要摘自本地 README，注记说明材料来源与边界；登记与依赖快照不冒充实时远端状态。
         </p>
       </header>
 
@@ -124,7 +124,7 @@
         <p class="sec-kicker">Stack</p>
         <h2 class="sec-title">技术栈分布</h2>
         <p class="sec-sub">
-          逐仓 pom / package.json 实测，按代码文件数统计。Java 占绝对主导 ——
+          逐目录按源文件扩展名计数（排除构建产物与依赖目录）。Java 占主导 ——
           这是一套以 Spring Boot 生态为骨架的基座。
         </p>
       </header>
@@ -145,7 +145,7 @@
           <h4>发布渠道</h4>
           <ul>
             <li><span>Java 构件</span><code>Maven Central</code><em>io.github.yuku123</em></li>
-            <li><span>前端包</span><code>npm</code><em>@yuku123/render</em></li>
+            <li><span>前端包</span><code>npm</code><em>@yuku123</em></li>
             <li><span>版本标签</span><code>git tag</code><em>Central 不发 SNAPSHOT</em></li>
           </ul>
         </div>
@@ -153,7 +153,7 @@
           <h4>事实来源</h4>
           <ul class="plain">
             <li><code>manifest.json</code> 全仓登记表</li>
-            <li><code>README.md</code> 全仓版本表（逐仓实测）</li>
+            <li><code>inventory.json</code> 依赖扫描快照</li>
             <li>各仓 <code>README.md</code> / <code>pom.xml</code></li>
             <li>本机磁盘 clone 状态与 git 提交数</li>
           </ul>
@@ -166,7 +166,7 @@
 <footer class="foot">
   <div class="wrap foot-in">
     <p>
-      数据于 <strong id="genDate"></strong> 从 <strong id="footRepos">46</strong> 个仓库实测生成 ·
+      数据于 <strong id="genDate"></strong> 从 <strong id="footRepos">—</strong> 个仓库实测生成 ·
       <code>z-introduce/tools/generate.py</code> 可复现
     </p>
     <p class="foot-dim">本页面为只读展示，代码与源码版权归属各原仓。</p>

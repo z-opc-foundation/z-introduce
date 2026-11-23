@@ -4,13 +4,14 @@
 
 扫描 lead manifest 登记的全部 z-* 仓库（仓数不在本文写死，以 `len(projects)` 现量为准），
 把实测元数据（README 摘要、模块树、语言分布、代码体量、发布状态）合并成
-assets/data.js 供前端渲染。分层口径与 lead 的 docs/ORG_COGNITION.md 家族成员表一致。
+assets/data.js 供前端渲染。仓库集合以非 retired 的 manifest 条目为准；
+分层是本站按各仓 README 维护的展示分组，不是实时部署拓扑。
 
     python3 tools/generate.py            # 生成
     python3 tools/generate.py --root ..  # 指定仓库根（默认上一级）
 
-数据口径与 z-opc-foundation-lead 的 manifest.json + README 版本表一致；
-任何"看起来像"但代码里不存在的功能，本生成器不做推断，只呈现实测字段。
+登记字段沿用 lead manifest.json，依赖统计读取已有 maven-inventory 快照；
+本地元数据现扫，历史登记与当前本地材料分开标注，不推断不存在的功能。
 """
 import argparse
 import datetime
@@ -31,29 +32,30 @@ CODE_EXT = {
 SKIP_DIR = {"target", "node_modules", ".git", "dist", "build", ".idea", "logs",
             "__pycache__", ".gradle", "out", ".venv", "venv", "_code_temp"}
 
-# 分层口径取自 z-opc-foundation-lead/README.md 的「全仓版本表」
+# 展示分组参照各仓 README；lead 的旧「全仓版本表」已归档，不作为当前事实。
+# 登记名不随本机目录改名：z-render/README.md 与 package.json 均标识 z-frontend-render。
+LOCAL_REPO_ALIASES = {"z-frontend-render": "z-render"}
+
 LAYERS = [
     {
         "id": "lead", "name": "组织治理", "en": "Meta",
         "tagline": "lead 不生产新功能产品，lead 管所有产品仓",
-        "desc": "组织的治理大脑：全仓事实表 manifest.json、强制规范、10 个跨仓技能、"
-                "新机器一键恢复。三条设计原则是「数字必须现测」「所有脚本共享一份 manifest」"
-                "「零外部依赖（python3 + bash + git）」。",
+        "desc": "组织治理仓：维护仓库登记表 manifest.json、跨仓规范、辅助脚本与新机器恢复入口。",
         "repos": ["z-opc-foundation-lead"],
     },
     {
         "id": "l1", "name": "L1 业务层", "en": "Business",
         "tagline": "一人公司的业务域，聚合在 z-opc 单体中台",
-        "desc": "不再把每个业务域拆成独立微服务：一个 z-opc-main-starter 进程 + 一个 oc 库"
-                "承接全部能力，其余业务仓以 Central 坐标被依赖或独立部署。",
+        "desc": "z-opc 提供统一主启动器；协同、资产、产品、交易、RPA 产品元数据、运维与商务等"
+                "业务能力由各独立仓维护。接入与发布状态以各仓记录为准。",
         "repos": ["z-opc", "z-opcs", "z-asset", "z-product", "z-trade", "z-rpa", "z-ops",
                   "z-team", "z-biz"],
     },
     {
         "id": "l2", "name": "L2 Boot 封装层", "en": "Boot",
-        "tagline": "版本权威 + BOM + 全套 Starter",
-        "desc": "z-boot 家族把第三方依赖版本锁进 BOM，并为每个 L3 中间件提供聚合 starter。"
-                "组织内绝大多数 Java 仓的 parent 指向 z-boot-parent，业务仓只声明坐标不写版本。",
+        "tagline": "版本权威 + Parent + Starter",
+        "desc": "z-boot 以 z-boot-parent 作为消费入口，管理第三方依赖与兄弟仓接入面版本，"
+                "并维护 Spring Boot starter 聚合层。",
         "repos": ["z-boot"],
     },
     {
@@ -61,18 +63,17 @@ LAYERS = [
         "tagline": "从抽象基座到本地应用的一整条 agent 链路",
         "desc": "z-agent-kernel 把消息 / 工具 / 记忆 / provider / 会话契约一次收口；上层 "
                 "z-llm-gateway、z-mcp、z-skill、z-bot、z-agent 各自只声明自己用到的那几个坐标。",
-        "repos": ["z-agent-kernel", "z-agent", "z-agent-proxy", "z-llm-gateway", "z-llm-agent",
+        "repos": ["z-agent-kernel", "z-agent", "z-llm-gateway", "z-llm-agent",
                   "z-llm-msghub", "z-mcp", "z-skill", "z-bot"],
     },
     {
         "id": "l3", "name": "L3 中间件层", "en": "Middleware",
-        "tagline": "数据面模块只向下打 z-util / z-boot，不互依",
-        "desc": "自研基础设施群：缓存、消息队列、配置中心、调度、工作流（Camunda 封装线 z-camuda "
-                "与自研 BPMN 线 z-wf 两条并存）、RPC、网关、图库、向量库、知识库、4A、密钥、"
-                "消息下发、对象存储、代码索引、数据源管控（z-dms）、ETL 引擎（z-etl）。"
-                "跨中间件的边全在 admin / web / registry 控制面。",
+        "tagline": "数据、通信与运行支撑能力",
+        "desc": "缓存、消息队列、配置、调度、工作流、RPC、网关、图库、向量库、4A、密钥、"
+                "消息下发、对象存储、代码索引、可观测性、数据源管控与 ETL。"
+                "本组只表示登记仓的能力分类，不承诺所有模块互不依赖。",
         "repos": ["z-util", "z-cache", "z-mq", "z-config", "z-schedule", "z-camuda", "z-rpc",
-                  "z-gw", "z-graph", "z-vector", "z-kb", "z-ctc", "z-mist", "z-msg",
+                  "z-gw", "z-graph", "z-vector", "z-ctc", "z-mist", "z-msg",
                   "z-oss", "z-indexer", "z-wf", "z-observer", "z-dms", "z-etl"],
     },
     {
@@ -81,37 +82,35 @@ LAYERS = [
         "desc": "认知域（z-cognition / z-ontology）负责把知识组织成有类型、可推理的形状；"
                 "数据安全线以 z-biz-security 为编排层，串起敏感识别（z-sense）、"
                 "脱敏遮蔽（z-mask）、水印溯源（z-watermark）与合规留痕（z-audit）四段。"
-                "两线各仓均以 -core 形式被业务仓依赖，不互造编排中心。",
+                "这里是按主题合并的展示组；z-biz-security 的工程定位仍是 L1 业务编排仓。",
         "repos": ["z-cognition", "z-ontology", "z-biz-security",
                   "z-sense", "z-mask", "z-watermark", "z-audit"],
     },
     {
         "id": "incub", "name": "孵化层", "en": "Incubation",
-        "tagline": "尚未接入 z-boot 聚合 starter 的独立产品仓",
-        "desc": "低代码、报表、脚本、元数据、任务协作、扩展点、Web IDE、短网址、质量与测试资产 "
-                "—— 已各自发版到 Central，但还没被 z-boot 家族聚合。",
+        "tagline": "独立产品与开发工具",
+        "desc": "低代码与报表、脚本、元数据、任务协作、扩展点、Web IDE、短网址、质量与测试资产。"
+                "「孵化」沿用本站分组名，不表示未接入 z-boot 或尚未发布。",
         "repos": ["z-script", "z-lc", "z-webide", "z-meta", "z-task", "z-ext",
-                  "z-surl", "z-qa", "z-report"],
+                  "z-surl", "z-qa"],
     },
     {
         "id": "frontend", "name": "前端与环境", "en": "Frontend & Env",
         "tagline": "不走 Maven Central 的那一组",
-        "desc": "z-frontend-render 是平台共享的前端渲染引擎（npm @yuku123/z-frontend-render）；"
-                "z-frontend-common 是组织共享的前端组件库（npm @yuku123/z-frontend-common）；"
-                "z-env 把 MySQL / Redis / Nacos / Kafka / MinIO / ES 等依赖层以「组件 + 版本 + 场景」"
-                "三段式收口，一条命令拉起、一条命令重置；z-introduce 是本站本身，纯静态无后端。",
-        "repos": ["z-frontend-render", "z-frontend-common", "z-env", "z-introduce"],
+        "desc": "共享渲染引擎 z-frontend-render（本机目录 z-render）、前端组件库 z-frontend-common、"
+                "Markdown 渲染与编辑包 z-markdown-component，以及环境编排仓 z-env 与纯静态展示站 z-introduce。",
+        "repos": ["z-frontend-render", "z-frontend-common", "z-markdown-component", "z-env", "z-introduce"],
     },
 ]
 
-# 一句话定位，取自 lead 仓版本表的「定位」列
+# 一句话定位，依据各仓 README；不保留过期的模块数、占位状态或发布断言。
 TAGS = {
     "z-opc-foundation-lead": "组织治理大脑 + 新机器恢复钥匙",
     "z-opc": "一人公司全栈中台单体", "z-opcs": "任务撮合 / 服务市场",
     "z-asset": "模块资产元数据采集器", "z-product": "产品设计信息汇总（PM 工件）",
-    "z-trade": "交易域 order / payment / usage", "z-rpa": "RPA（复刻影刀）",
-    "z-ops": "个人公司运维平台", "z-boot": "启动器 / Starter / BOM",
-    "z-agent-kernel": "Agent 框架基座（25 子模块）", "z-agent": "云端 Agent SaaS 平台",
+    "z-trade": "交易域 order / payment / usage", "z-rpa": "RPA 产品元数据（应用市场 / 需求中心）",
+    "z-ops": "个人公司运维平台", "z-boot": "版本权威 / Parent / Starter",
+    "z-agent-kernel": "Agent 框架基座", "z-agent": "云端 Agent SaaS 平台",
     "z-llm-gateway": "中心化 LLM 网关", "z-llm-agent": "CLI Agent 服务化（对话化本机 CLI）",
     "z-llm-msghub": "msgHub 中心消息路由（WebSocket 枢纽 + Agent SDK）", "z-mcp": "MCP 协议桥接与注册中心",
     "z-skill": "Skill 注册中心 + Marketplace", "z-bot": "本地 agent 应用（CLI + HTTP）",
@@ -119,8 +118,8 @@ TAGS = {
     "z-cache": "Redis 协议兼容分布式缓存", "z-mq": "NameServer + Broker 消息队列",
     "z-config": "配置中心 + 服务注册中心", "z-schedule": "分布式任务调度",
     "z-camuda": "工作流引擎（Camunda 基座）", "z-rpc": "RPC 框架",
-    "z-gw": "Netty 自研 API 网关", "z-graph": "图数据库（增量存储）",
-    "z-vector": "自研向量数据库", "z-kb": "自托管知识库（RAG）",
+    "z-gw": "Netty 自研 API 网关", "z-graph": "图数据库（磁盘版本链存储）",
+    "z-vector": "自研向量数据库",
     "z-ctc": "4A 中心 + SSO", "z-mist": "分布式密钥 / 秘密管理",
     "z-msg": "多通道消息下发抽象层", "z-oss": "可插拔对象存储抽象层",
     "z-indexer": "代码索引服务", "z-script": "多 DSL 脚本平台 + Mock Server",
@@ -131,57 +130,35 @@ TAGS = {
     "z-frontend-common": "组织共享前端组件库",
     "z-observer": "可观测性域独立仓",
     "z-env": "中间件编排环境仓",
-    "z-wf": "自研 BPMN 流程引擎（与 z-camuda 两条线并存）",
+    "z-wf": "自研 BPMN 流程引擎",
     "z-surl": "短网址服务（短码 / 解析 / 命中统计）",
     "z-qa": "质量与测试资产（用例集 / E2E / 套件编排）",
-    "z-team": "Z-Team 协同域独立仓（空占位，代码仍在 z-opc）",
+    "z-team": "数字员工协同域独立仓（后端多模块 + 前端组件包）",
     "z-introduce": "组织只读展示站（本站）",
     "z-biz": "商务外壳域（客户档案 / 合同 / 票据 / 对账）",
     "z-dms": "数据源管控底座（凭据只存 z-mist 引用）",
     "z-etl": "ETL 引擎域（reader → transform → writer）",
-    # 2026-11-07 补齐：manifest 60 仓，下面 9 仓此前既不在 LAYERS 也不在 TAGS，
-    # 导致 generate.py 的分类闸门实算 9 仓缺口、重生成展示站当场 sys.exit。
-    # 一句话定位取自各仓 README 首段；manifest 名与磁盘目录名不一致的如实标注。
-    "z-agent-proxy": "三方 coding agent 适配代理（Aider / Cursor → z-agent-kernel）",
-    "z-cognition": "认知域 · 认知客户端与推理接入",
+    "z-cognition": "业务认知域（术语 / 概念 / 证据链 / 消歧 / 影响面）",
     "z-ontology": "本体层 · TBox/ABox + RDFS 子集推理 + 一致性校验",
-    "z-biz-security": "数据安全域编排层（磁盘仓名 z-security；场景→策略→四段流水线）",
+    "z-biz-security": "数据安全域编排层（场景→策略→四段流水线）",
     "z-sense": "敏感识别与分类分级引擎",
     "z-mask": "脱敏与遮蔽引擎",
     "z-watermark": "水印引擎（显式 / 隐写 / 盲水印溯源）",
     "z-audit": "审计与合规留痕（事件模型 + 哈希链 + 留存期）",
-    "z-report": "报表域（manifest 已登记，磁盘仓尚未落盘）",
+    "z-markdown-component": "共享 Markdown 渲染与编辑组件包",
 }
 
-# 已知问题，逐条取自 lead 仓各轮审计的实测记录（近期一轮为 2026-10-08），不做推测
+# 仅保留可从当前本地材料定位的边界说明；未复核的旧审计结论不当作当前告警。
 NOTES = {
-    "z-boot": "⚠️ z-boot-parent 的 z-boot-fleet.version 仍写 1.0.1，而中央已到 1.0.4"
-            "（2026-10-08 实扫）⇒ 继承到的版本表落后一档，1.0.21 影响 36 仓 / 1.0.23 影响 2 仓",
-    "z-asset": "parent 已换 io.github.yuku123:z-boot-parent:1.0.21（2026-10-08 根 pom 现读）；"
-            "剩 ${revision}+flatten 面未对齐（根 pom 版本是写死面值、全仓 0 个 flatten 配置）",
-    "z-oss": "⚠️ pom 宣传 MinIO provider，实现未落地",
-    "z-graph": "⚠️ 默认纯内存存储，重启丢数据",
-    "z-kb": "未配向量 / 图存储时自动回落 JSON + 内存",
-    "z-indexer": "已发 Central；本轮实扫唯一引它的是 z-boot 聚合面（1 个消费方）",
-    "z-webide": "⚠️ 仓名 z-webide ≠ 构件名 z-tool-webide",
-    "z-task": "是任务管理而非定时调度，仓内无调度器实现",
-    "z-env": "无 pom，属编排仓而非 Java 构件",
-    "z-frontend-render": "发布渠道是 npm @yuku123/z-frontend-render，不走 Central",
-    "z-ops": "服务端产品仓，按 README 政策不发中央（repo1 根构件 404 实测 2026-10-08）；"
-            "除刻意独立 POM 树的 z-boot / z-util 外，它是唯一没接 z-boot-parent 的 Maven 仓",
-    "z-mcp": "⚠️ z-mcp-starter 以 1.0.0-SNAPSHOT 引 z-agent-center-core（provided），"
-            "该坐标 repo1 404、本机 ~/.m2 也没有（2026-10-08 实测）⇒ 下次构建会在这一条断",
-    "z-opc": "reactor 模块已从 9 降到 4，被拆走的中间件改由 Central 坐标消费",
-    "z-wf": "⚠️ 同坐标 io.github.yuku123:z-wf 的 1.x 是 Camunda 线（现为 z-camuda 仓），"
-            "两仓无共同历史，消费方须锁 2.x",
-    "z-team": "空占位仓：代码仍在 z-opc 的 z-team 模块里，孵化尚未搬入",
-    "z-introduce": "本站本身：无 pom、不发中央，数据由本生成器实测产出",
-    "z-biz": "⚠️ 2026-10-22 新建（manifest 现读）：远端仓尚未创建（GitHub 404），本地仓已建好；"
-            "不发中央（groupId com.zifang 同 z-trade 口径）",
-    "z-dms": "⚠️ 2026-10-22 新建（manifest 现读）：远端仓尚未创建（GitHub 404），本地仓已建好；"
-            "中央 profile 已就位但未激活",
-    "z-etl": "⚠️ 2026-10-22 新建（manifest 现读）：远端仓尚未创建（GitHub 404），本地仓已建好；"
-            "中央 profile 未激活",
+    "z-boot": "据本仓 README「火车制重构」：原 fleet / dependencies 独立 BOM 已退役，"
+              "消费入口为 z-boot-parent；旧 Central 制品保留不代表当前拓扑。",
+    "z-team": "据本仓 README「仓的由来」：2026-10-20 从 z-opc 迁出，"
+              "当前为自带父 POM、reactor 与前端组件包的独立仓，不是空占位。",
+    "z-camuda": "材料存在差异：z-boot/README.md 的 2026-11-17 注记称本仓已归档，"
+                "但 manifest 尚未标 retired；本站按 manifest 保留，不据此断言仍在维护。",
+    "z-biz-security": "据本仓 README：L1 业务编排仓，只做编排与拦截判定，"
+                      "不自行实现识别、脱敏、水印、审计算法。",
+    "z-introduce": "本站本身：纯静态，无后端；本地实测数据与登记快照分开标注。",
 }
 
 # 被依赖 TOP3 与「独立仓」两组读数一律在 main() 里现算自 lead 的 maven-inventory 产物，
@@ -253,7 +230,7 @@ def readme_title(md):
 def count_code(d):
     counts, nbytes = {}, 0
     for base, dirs, files in os.walk(d):
-        dirs[:] = [x for x in dirs if x not in SKIP_DIR and not x.startswith(".")]
+        dirs[:] = [x for x in dirs if x not in SKIP_DIR and not x.startswith((".", "dist.stale-"))]
         for f in files:
             ext = os.path.splitext(f)[1].lower()
             if ext in CODE_EXT:
@@ -280,7 +257,7 @@ def submodules(d):
 def frontend_hits(d):
     hits = []
     for base, dirs, _ in os.walk(d):
-        dirs[:] = [x for x in dirs if x not in SKIP_DIR]
+        dirs[:] = [x for x in dirs if x not in SKIP_DIR and not x.startswith((".", "dist.stale-"))]
         for e in dirs:
             if e in ("webapp", "static", "resources", "frontend", "admin-frontend",
                      "web", "ui", "public", "assets"):
@@ -312,6 +289,82 @@ def git_info(d):
     }
 
 
+def active_repositories(rows):
+    """先检查重复，再过滤 retired，避免 dict 覆盖掩盖台账错误。"""
+    manifest = {}
+    seen = set()
+    for row in rows:
+        name = row["name"]
+        if name in seen:
+            raise ValueError("manifest 重复仓名: " + name)
+        seen.add(name)
+        if row.get("status") != "retired":
+            manifest[name] = row
+    return manifest
+
+
+def validate_catalog(manifest, layers, tags, notes):
+    """手维护清单须与有效 manifest 双向相等，失败时禁止写产物。"""
+    active = set(manifest)
+    seen, ids, problems = {}, set(), []
+    for layer in layers:
+        if layer["id"] in ids:
+            problems.append("重复分层 ID: " + layer["id"])
+        ids.add(layer["id"])
+        for name in layer["repos"]:
+            seen[name] = seen.get(name, 0) + 1
+    gap = sorted((active - set(seen)) | (active - set(tags)))
+    stale = sorted((set(seen) | set(tags) | set(notes)) - active)
+    dup = sorted(n for n, count in seen.items() if count > 1)
+    if gap:
+        problems.append("未被 LAYERS/TAGS 覆盖: " + "、".join(gap))
+    if stale:
+        problems.append("LAYERS/TAGS/NOTES 含过期仓名: " + "、".join(stale))
+    if dup:
+        problems.append("仓库重复分层: " + "、".join(dup))
+    if problems:
+        raise ValueError("分类与 manifest 不一致，先改 tools/generate.py 再生成：\n  - "
+                         + "\n  - ".join(problems))
+    return {name: layer["id"] for layer in layers for name in layer["repos"]}
+
+
+def repo_directory(root, name):
+    """优先同名目录；仅对已核实的别名回退，并检查 npm 包身份。"""
+    canonical = os.path.join(root, name)
+    if os.path.isdir(canonical) or name not in LOCAL_REPO_ALIASES:
+        return canonical
+    alias = os.path.join(root, LOCAL_REPO_ALIASES[name])
+    if not os.path.isdir(alias):
+        return canonical
+    with open(os.path.join(alias, "package.json"), encoding="utf-8") as fh:
+        package = json.load(fh)
+    if package.get("name") != "@yuku123/" + name:
+        raise ValueError("目录别名的 package.json 身份不符: " + os.path.basename(alias))
+    return alias
+
+
+def dependency_summary(manifest, inventory):
+    """按有效仓集合统计快照；别名归一，退役仓不再作为当前消费方或榜单项。"""
+    active = set(manifest)
+    aliases = {alias: name for name, alias in LOCAL_REPO_ALIASES.items() if name in active}
+    fan, out_to = {}, {}
+    for row in inventory.values():
+        for edge in row.get("dep_edges") or []:
+            consumer = aliases.get(edge["consumer"], edge["consumer"])
+            owner = aliases.get(edge["owner"], edge["owner"])
+            if consumer not in active or consumer == owner:
+                continue
+            # 活跃仓依赖退役制品仍是出边，不能伪称零跨仓依赖。
+            out_to.setdefault(consumer, set()).add(owner)
+            if owner in active:
+                fan.setdefault(owner, set()).add(consumer)
+    top = sorted(((name, len(consumers)) for name, consumers in fan.items()),
+                 key=lambda item: (-item[1], item[0]))[:3]
+    zero = sorted(name for name in active
+                  if inventory[name]["is_maven"] and not out_to.get(name))
+    return top, zero
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=os.path.join(
@@ -327,8 +380,11 @@ def main():
     if not os.path.exists(manifest_path):
         sys.exit("找不到 manifest.json：%s" % manifest_path)
     with open(manifest_path, encoding="utf-8") as fh:
-        manifest = {r["name"]: r for r in json.load(fh)["repositories"]
-                    if r.get("status") != "retired"}
+        try:
+            manifest = active_repositories(json.load(fh)["repositories"])
+            layer_of = validate_catalog(manifest, LAYERS, TAGS, NOTES)
+        except ValueError as exc:
+            sys.exit(str(exc))
 
     # 跨仓依赖图现算：消费面 = 去重后的 (owner, artifactId, version) 边里 owner→consumer 的仓数
     inv_path = os.path.join(
@@ -338,27 +394,20 @@ def main():
                  "⇒ 先跑 lead 的 003_辅助能力/maven-inventory（被依赖 TOP3 / 独立仓两组都从它现算，"
                  "宁可不出站也不能抄旧数）" % inv_path)
     with open(inv_path, encoding="utf-8") as fh:
-        inv = {r["name"]: r for r in json.load(fh)["repos"]}
-    fan, out_to = {}, {}
-    for name, r in inv.items():
-        fan[name], out_to[name] = set(), set()
-    for r in inv.values():
-        for e in r.get("dep_edges") or []:
-            if e["consumer"] == e["owner"]:
-                continue
-            fan.setdefault(e["owner"], set()).add(e["consumer"])
-            out_to.setdefault(e["consumer"], set()).add(e["owner"])
-    DEP_FANS = sorted(((o, len(cs)) for o, cs in fan.items() if cs),
-                      key=lambda x: (-x[1], x[0]))[:3]
-    ZERO_DEP = (sorted(n for n, r in inv.items() if r["is_maven"] and not out_to.get(n))
-                + sorted(n for n, r in inv.items()
-                         if not r["is_maven"] and n in manifest
-                         and manifest[n].get("type") != "meta"))
+        inventory = json.load(fh)
+    inv = {r["name"]: r for r in inventory["repos"]}
+    missing_inventory = sorted(set(manifest) - set(inv))
+    if missing_inventory:
+        sys.exit("maven-inventory 未覆盖有效仓，请先刷新快照: " + "、".join(missing_inventory))
+    DEP_FANS, ZERO_DEP = dependency_summary(manifest, inv)
 
     # 实测扫描
     scan = {}
     for name in manifest:
-        d = os.path.join(root, name)
+        try:
+            d = repo_directory(root, name)
+        except (OSError, ValueError) as exc:
+            sys.exit(str(exc))
         if not os.path.isdir(d):
             continue
         pom = os.path.join(d, "pom.xml")
@@ -374,6 +423,7 @@ def main():
         langs, nbytes = count_code(d)
         ver = pd.get("version", "")
         scan[name] = {
+            "localDir": os.path.basename(d),
             "artifactId": pd.get("artifactId", ""),
             "version": "" if ver.startswith("${") else ver,
             "summary": first_paragraph(md) if md else "",
@@ -389,20 +439,24 @@ def main():
             **git_info(d),
         }
 
-    layer_of = {r: l["id"] for l in LAYERS for r in l["repos"]}
     projects = []
     for name, mf in manifest.items():
         s = scan.get(name, {})
+        note = NOTES.get(name, "")
+        if s.get("localDir", name) != name:
+            note = (note + " 登记名为 %s，本地采集目录为 %s；README 与 package.json 已核对。"
+                    % (name, s["localDir"])).strip()
         projects.append({
             "name": name,
-            "tagline": TAGS.get(name, mf.get("purpose", "")[:40]),
+            "localDir": s.get("localDir", ""),
+            "tagline": TAGS[name],
             "purpose": re.sub(r"\s+", " ", mf.get("purpose", "")).strip(),
-            "layer": layer_of.get(name, "other"),
+            "layer": layer_of[name],
             "artifactId": s.get("artifactId", ""),
             "version": s.get("version", ""),
             "published": mf.get("published_status", ""),
             "maven": bool(inv.get(name, {}).get("is_maven", False)),
-            "private": bool(mf.get("private", True)),
+            "private": mf.get("private"),
             "language": mf.get("language", ""),
             "sizeKB": mf.get("size_kb", 0),
             "remote": (mf.get("remote", "") or "").replace(
@@ -420,7 +474,7 @@ def main():
             "commits": s.get("commits", 0),
             "lastCommit": s.get("lastCommit", ""),
             "docker": s.get("docker", False),
-            "note": NOTES.get(name, ""),
+            "note": note,
         })
     projects.sort(key=lambda p: p["name"])
 
@@ -438,7 +492,8 @@ def main():
     # 「已发中央」有两类通道：Maven Central 与 npm @yuku123，混在一个数里就会把 z-render 说成 Java 构件
     n_pub_npm = sum(1 for p in projects if p["published"] == "central" and not p["maven"])
     n_pub_maven = n_published - n_pub_npm
-    n_public = sum(1 for p in projects if not p["private"])
+    n_public = sum(1 for p in projects if p["private"] is False)
+    n_unknown_visibility = sum(1 for p in projects if p["private"] is None)
     n_java = sum(1 for p in cloned if "Java" in p["languages"])
     top_fan = max(DEP_FANS, key=lambda x: x[1]) if DEP_FANS else ("—", 0)
 
@@ -446,20 +501,18 @@ def main():
         "org": {
             "name": "z-opc-foundation", "zhName": "一人公司技术基座",
             "tagline": "%d 个自研仓库，从工具库到 agent 平台的一整条自建栈" % n_repos,
-            "desc": "z-opc-foundation 是一个「一人公司」形态的技术组织：把一个中小团队日常需要的缓存、"
-                    "消息队列、配置中心、调度、工作流、RPC、网关、图库、向量库、知识库、4A、"
-                    "密钥管理、对象存储、低代码、报表、脚本平台全部自研，而不是从 Spring Cloud / "
-                    "Dubbo / Kafka / Milvus / Dify / Camunda 各拉一个现成件。%d 个仓库里 %d 个 "
-                    "Java 仓已发 Maven Central (io.github.yuku123)，前端走 npm @yuku123。"
-                    % (n_repos, n_pub_maven),
+            "desc": "z-opc-foundation 面向一人公司与小型团队，维护业务应用、Agent、基础设施与共享组件。"
+                    "本站按 manifest 收录 %d 个非退役仓库，结合本地 README、模块与代码文件扫描展示。"
+                    "发布状态沿用登记快照：%d 个 Maven 仓标记已发 Central，%d 个非 Maven 仓标记 npm；"
+                    "本次生成不访问远端核验发布状态。" % (n_repos, n_pub_maven, n_pub_npm),
             "facts": [
                 {"k": "登记仓库", "v": str(n_repos),
                  "d": "1 lead + %d 产品 / 业务仓，本机已 clone %d" % (n_repos - 1, n_cloned)},
                 {"k": "已发中央", "v": str(n_pub_maven),
-                 "d": "io.github.yuku123 上有 release 的 Java 仓；另有 %d 个走 npm @yuku123"
+                 "d": "manifest 登记为已发布的 Maven 仓；另有 %d 个登记为 npm 发布"
                      % n_pub_npm},
                 {"k": "公开仓", "v": str(n_public),
-                 "d": "按 lead manifest 的可见性字段，与 GitHub org API 同口径"},
+                 "d": "按 manifest 的 private=false 计数；可见性未知 %d 仓，未重测 GitHub" % n_unknown_visibility},
                 {"k": "被依赖 TOP1", "v": "%d 仓" % top_fan[1],
                  "d": "%s 是事实上的第一底座" % top_fan[0]},
             ],
@@ -479,39 +532,15 @@ def main():
         "layers": LAYERS,
         "depFans": [{"name": n, "count": c} for n, c in DEP_FANS],
         "zeroDep": ZERO_DEP,
+        "inventoryGenerated": inventory.get("generated_at", "未记录"),
         "generated": datetime.date.today().isoformat(),
         "projects": projects,
     }
 
-    # LAYERS / TAGS 是手维护的：manifest 补登记新仓而这里不拦，站点就会
-    # 交付「卡片有仓、分层表里没有」的半旧读数（46 仓那轮就是这么漏了 5 仓）。
-    #
-    # 校验必须走在**写盘之前**：先写后校验的话，半旧数据已经落进 assets/ 了，
-    # README「不会产出一个『卡片有仓、分层表里没有』的半旧站点」这句话就是假的。
-    un = [p["name"] for p in projects if p["layer"] == "other"]
-    no_tag = [p["name"] for p in projects if p["name"] not in TAGS]
-    gap = sorted(set(un) | set(no_tag))
-    # 反向只告警、不阻断：manifest 里标 retired 的仓留在分类表是预期（历史分层），
-    # 生成器已按 status != retired 过滤，它们不会变成幽灵卡片。
-    known = {p["name"] for p in projects}
-    ghost = sorted((set(layer_of) | set(TAGS)) - known)
-    if ghost:
-        print("ℹ️ %d 个分类项不在本次生成集（retired 或已从 manifest 移除），已跳过: %s"
-              % (len(ghost), "、".join(ghost)))
-    seen = {}
-    dup = []
-    for layer in LAYERS:
-        for repo in layer["repos"]:
-            seen[repo] = seen.get(repo, 0) + 1
-    dup = sorted(r for r, c in seen.items() if c > 1)
-    if gap or dup:
-        problems = []
-        if gap:
-            problems.append("%d 仓未被 LAYERS/TAGS 覆盖: %s" % (len(gap), "、".join(gap)))
-        if dup:
-            problems.append("%d 个仓被重复分到多层: %s" % (len(dup), "、".join(dup)))
-        sys.exit("❌ 分类与 manifest 不一致，先改 tools/generate.py 的 LAYERS / TAGS 再生成：\n   - "
-                 + "\n   - ".join(problems))
+    # 再钉最终卡片集合：无缺失、无额外项、无重复；所有检查都在写盘前。
+    names = [p["name"] for p in projects]
+    if set(names) != set(manifest) or len(names) != len(manifest):
+        sys.exit("生成卡片集合与有效 manifest 不一致，拒绝写盘")
 
     os.makedirs(out_dir, exist_ok=True)
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
@@ -524,14 +553,15 @@ def main():
             fh.write(payload)
             if header:
                 fh.write(";\n")
-    print("✅ %d 仓 → %s" % (len(projects), out_dir))
+    print("%d 仓 → %s" % (len(projects), out_dir))
     print("   已 clone %d · 代码文件 %d · 模块 %d · 提交 %d" % (
         data["stats"]["cloned"], data["stats"]["codeFiles"],
         data["stats"]["modules"], data["stats"]["commits"]))
     miss = [p["name"] for p in projects if not p["summary"]]
     print("   无 README 摘要:", "、".join(miss) or "无")
-    print("   未归层:", "、".join(un) or "无")
-    print("   无一句话定位:", "、".join(no_tag) or "无")
+    print("   集合 / 分层 / 定位校验通过")
+    print("   目录别名:", "、".join(p["name"] + " → " + p["localDir"] for p in projects
+                                  if p["localDir"] and p["localDir"] != p["name"]) or "无")
 
 
 if __name__ == "__main__":

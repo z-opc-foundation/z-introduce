@@ -22,6 +22,7 @@
   --l-l2: #7c5cff;
   --l-agent: #35d39a;
   --l-l3: #ffb454;
+  --l-cognition: #a97bff;
   --l-incub: #ff7ab6;
   --l-frontend: #4dd4e0;
 
@@ -180,6 +181,7 @@ code { font-family: var(--mono); font-size: .88em; }
 .layer-l2 { --c: var(--l-l2); }
 .layer-agent { --c: var(--l-agent); }
 .layer-l3 { --c: var(--l-l3); }
+.layer-cognition { --c: var(--l-cognition); }
 .layer-incub { --c: var(--l-incub); }
 .layer-frontend { --c: var(--l-frontend); }
 .layer-lead { --c: var(--l-lead); }
@@ -233,6 +235,7 @@ code { font-family: var(--mono); font-size: .88em; }
 /* ── 工具栏 ───────────────────────────────────────── */
 .toolbar { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
 .search-wrap { position: relative; flex: 1; min-width: 260px; max-width: 380px; }
+#q::-webkit-search-cancel-button { -webkit-appearance: none; }
 .search-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--text-faint); pointer-events: none; }
 #q {
   width: 100%; padding: 10px 34px 10px 37px; border-radius: 9px;
@@ -347,8 +350,8 @@ code { font-family: var(--mono); font-size: .88em; }
 }
 @keyframes slide { from { transform: translateX(100%); } }
 .drawer-close {
-  position: absolute; top: 15px; right: 17px; z-index: 2;
-  width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+  position: sticky; top: 12px; z-index: 2; display: block; margin: 12px 16px -56px auto;
+  width: 44px; height: 44px; border-radius: 8px; cursor: pointer;
   background: var(--surface); border: 1px solid var(--border);
   color: var(--text-dim); font-size: 20px; line-height: 1;
 }

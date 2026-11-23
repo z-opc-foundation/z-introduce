@@ -18,10 +18,17 @@ README 里写死的数字与名单必须能从源码 / 事实表重算出来 —
 
 跑法：``python3 tools/test_readme_claims.py``（或 ``python3 -m unittest discover -s tools``）。
 """
+import copy
 import json
 import os
+from pathlib import Path
 import re
+import sys
+import tempfile
 import unittest
+from unittest import mock
+
+import generate
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ORG = os.path.dirname(REPO)
@@ -310,15 +317,162 @@ class ReadmeClaimsTest(unittest.TestCase):
         self.assertEqual([], stale, "LAYERS/TAGS 里的过期仓名：%s" % "、".join(stale))
 
     def test_site_data_matches_manifest(self):
-        """站点收录的仓数必须等于 manifest 非 retired 条数（生成产物不能是半旧的）。"""
+        """既校验数量也双向核对名称，等量换仓或重复项不能蒙混过关。"""
         self.assertEqual(manifest_active_count(), site_projects_count(),
                          "assets/data.json 的 projects 条数与 lead manifest 不一致")
+        data = json.loads(read(DATA_JSON))
+        names = [p["name"] for p in data["projects"]]
+        self.assertEqual(active_manifest_repos(), set(names))
+        self.assertEqual(len(names), len(set(names)))
+        layered = [name for layer in data["layers"] for name in layer["repos"]]
+        self.assertCountEqual(names, layered)
+        self.assertEqual(generate.LAYERS, data["layers"])
+        layer_of = {name: layer["id"] for layer in data["layers"] for name in layer["repos"]}
+        for project in data["projects"]:
+            self.assertEqual(layer_of[project["name"]], project["layer"])
+            self.assertEqual(generate.TAGS[project["name"]], project["tagline"])
+        self.assertEqual(len(names), data["stats"]["repos"])
+        self.assertEqual(sum(p["cloned"] for p in data["projects"]), data["stats"]["cloned"])
+
+    def test_both_generated_payloads_match(self):
+        js = read(os.path.join(REPO, "assets", "data.js"))
+        payload = js.split("window.ZDESC = ", 1)[1].removesuffix(";\n")
+        self.assertEqual(json.loads(read(DATA_JSON)), json.loads(payload))
+
+    def test_visibility_unknown_is_not_public(self):
+        rows = generate.active_repositories(json.loads(read(MANIFEST))["repositories"])
+        data = json.loads(read(DATA_JSON))
+        for project in data["projects"]:
+            self.assertIs(rows[project["name"]].get("private"), project["private"])
+        self.assertEqual(sum(row.get("private") is False for row in rows.values()),
+                         data["stats"]["publicRepos"])
+
+    def test_generated_dependencies_have_no_ghost_repos(self):
+        data = json.loads(read(DATA_JSON))
+        active = active_manifest_repos()
+        self.assertTrue(set(data["zeroDep"]) <= active)
+        self.assertTrue({row["name"] for row in data["depFans"]} <= active)
+        self.assertEqual(len(data["zeroDep"]), len(set(data["zeroDep"])))
+        self.assertTrue(data["inventoryGenerated"])
+
+    def test_every_layer_has_a_color(self):
+        css = read(os.path.join(REPO, "assets", "style.css"))
+        for layer in generate.LAYERS:
+            self.assertIn("--l-%s:" % layer["id"], css)
+            self.assertIn(".layer-%s {" % layer["id"], css)
 
     def test_generator_validates_before_writing(self):
         """覆盖校验必须走在写盘之前，否则半旧数据已经落进 assets/。"""
         self.assertTrue(gap_check_before_write(),
                         "generate.py 的 LAYERS/TAGS 覆盖校验跑在写盘之后 —— "
                         "半旧数据会先落进 assets/，README 那句「不会产出半旧站点」就是假的")
+
+
+class GeneratorIntegrityTest(unittest.TestCase):
+    def test_build_backups_are_not_counted_as_source_or_frontend(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ("src", "dist", "dist.stale-123", ".cache"):
+                assets = root / name / "assets"
+                assets.mkdir(parents=True)
+                (assets / "app.js").write_text("let value = 1", encoding="utf-8")
+            self.assertEqual({"JavaScript": 1}, generate.count_code(tmp)[0])
+            self.assertEqual(["src/assets"], generate.frontend_hits(tmp))
+
+    def test_retired_filter_and_duplicate_manifest_names(self):
+        rows = [{"name": "z-live"}, {"name": "z-old", "status": "retired"}]
+        self.assertEqual({"z-live"}, set(generate.active_repositories(rows)))
+        with self.assertRaisesRegex(ValueError, "重复仓名"):
+            generate.active_repositories(rows + [{"name": "z-live"}])
+
+    def test_catalog_rejects_each_kind_of_drift(self):
+        active = {"z-a", "z-b"}
+        layers = [{"id": "one", "repos": ["z-a", "z-b"]}]
+        tags = {name: name for name in active}
+        self.assertEqual({"z-a": "one", "z-b": "one"},
+                         generate.validate_catalog(active, layers, tags, {}))
+        cases = [
+            ([{"id": "one", "repos": ["z-a"]}], tags, {}, "未被 LAYERS/TAGS 覆盖"),
+            (layers, {"z-a": "a"}, {}, "未被 LAYERS/TAGS 覆盖"),
+            ([{"id": "one", "repos": ["z-a", "z-b", "z-old"]}], tags, {}, "过期仓名"),
+            (layers, dict(tags, **{"z-old": "old"}), {}, "过期仓名"),
+            (layers, tags, {"z-old": "old"}, "过期仓名"),
+            (layers + [{"id": "two", "repos": ["z-a"]}], tags, {}, "重复分层"),
+            (layers + [{"id": "one", "repos": []}], tags, {}, "重复分层 ID"),
+        ]
+        for changed_layers, changed_tags, notes, message in cases:
+            with self.subTest(message=message, layers=changed_layers):
+                with self.assertRaisesRegex(ValueError, message):
+                    generate.validate_catalog(active, changed_layers, changed_tags, notes)
+
+    def test_failed_generation_preserves_both_existing_outputs(self):
+        """真实 main 入口的失败必须发生在第一次写盘之前，而不只检查源码顺序。"""
+        rows = json.loads(read(MANIFEST))["repositories"]
+        active = active_manifest_repos()
+        missing_tag = dict(generate.TAGS)
+        missing_tag.pop(next(iter(active)))
+        duplicate_layers = copy.deepcopy(generate.LAYERS)
+        duplicate_layers[0]["repos"].append(duplicate_layers[0]["repos"][0])
+        cases = [
+            (rows, generate.LAYERS, missing_tag, generate.NOTES),
+            (rows, duplicate_layers, generate.TAGS, generate.NOTES),
+            (rows, generate.LAYERS, dict(generate.TAGS, **{"z-old": "old"}), generate.NOTES),
+            (rows, generate.LAYERS, generate.TAGS, dict(generate.NOTES, **{"z-old": "old"})),
+            (rows + [rows[0]], generate.LAYERS, generate.TAGS, generate.NOTES),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            mf = root / "z-opc-foundation-lead/003_辅助能力/bootstrap/manifest.json"
+            mf.parent.mkdir(parents=True)
+            out = root / "assets"
+            out.mkdir()
+            for filename in ("data.json", "data.js"):
+                (out / filename).write_text("sentinel", encoding="utf-8")
+            for changed_rows, layers, tags, notes in cases:
+                mf.write_text(json.dumps({"repositories": changed_rows}), encoding="utf-8")
+                with mock.patch.object(sys, "argv", [GENERATE, "--root", tmp, "--out", str(out)]), \
+                     mock.patch.object(generate, "LAYERS", layers), \
+                     mock.patch.object(generate, "TAGS", tags), \
+                     mock.patch.object(generate, "NOTES", notes):
+                    with self.assertRaises(SystemExit):
+                        generate.main()
+                for filename in ("data.json", "data.js"):
+                    self.assertEqual("sentinel", (out / filename).read_text(encoding="utf-8"))
+
+    def test_local_alias_requires_package_identity_and_prefers_canonical(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            alias = root / "z-render"
+            alias.mkdir()
+            package = alias / "package.json"
+            package.write_text('{"name":"@yuku123/z-frontend-render"}', encoding="utf-8")
+            self.assertEqual(str(alias), generate.repo_directory(tmp, "z-frontend-render"))
+            package.write_text('{"name":"unrelated-package"}', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "身份不符"):
+                generate.repo_directory(tmp, "z-frontend-render")
+            canonical = root / "z-frontend-render"
+            canonical.mkdir()
+            self.assertEqual(str(canonical), generate.repo_directory(tmp, "z-frontend-render"))
+
+    def test_dependency_summary_filters_retired_and_normalizes_aliases(self):
+        manifest = {name: {"type": "product"} for name in ("z-a", "z-b", "z-frontend-render")}
+        manifest["z-meta"] = {"type": "meta"}
+        inventory = {name: {"is_maven": name in ("z-a", "z-b")} for name in manifest}
+        inventory["z-old"] = {"is_maven": True, "dep_edges": [
+            {"consumer": "z-old", "owner": "z-b"},
+            {"consumer": "z-a", "owner": "z-old"},
+            {"consumer": "z-a", "owner": "z-b"},
+            {"consumer": "z-a", "owner": "z-b"},
+            {"consumer": "z-a", "owner": "z-a"},
+            {"consumer": "z-a", "owner": "z-render"},
+        ]}
+        top, zero = generate.dependency_summary(manifest, inventory)
+        self.assertEqual([("z-b", 1), ("z-frontend-render", 1)], top)
+        self.assertEqual(["z-b"], zero)
+        inventory["z-old"]["dep_edges"] = [{"consumer": "z-a", "owner": "z-old"}]
+        top, zero = generate.dependency_summary(manifest, inventory)
+        self.assertEqual([], top)
+        self.assertNotIn("z-a", zero)
 
 
 if __name__ == "__main__":

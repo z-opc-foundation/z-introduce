@@ -81,7 +81,8 @@
       (p.maven ? "Central" : "npm") + '</span>';
     if (p.published === "pending") return '<span class="badge badge-none">待发版</span>';
     if (p.published === "meta") return '<span class="badge badge-meta">meta</span>';
-    return '<span class="badge badge-priv">不发版</span>';
+    if (!p.published) return '<span class="badge badge-none">发布状态未登记</span>';
+    return '<span class="badge badge-priv">未登记发布</span>';
   }
 
   function card(p) {
@@ -134,30 +135,35 @@
     return '<div class="dcell"><dt>' + k + "</dt><dd>" + v + "</dd></div>";
   }
 
-  function openDrawer(name) {
+  var drawerTrigger = null;
+  var backgroundState = [];
+  var bodyOverflow = "";
+
+  function openDrawer(name, trigger) {
     var p = D.projects.filter(function (x) { return x.name === name; })[0];
     if (!p) return;
     var c = "var(--l-" + p.layer + ")";
     var lname = layerOf[p.layer] ? layerOf[p.layer].name : p.layer;
 
-    var h = '<div class="dh" style="--c:' + c + '"><h3 style="color:' + c + '">' +
+    var h = '<div class="dh" style="--c:' + c + '"><h3 id="dTitle" style="color:' + c + '">' +
       esc(p.name) + " " + badge(p) + '</h3><div class="ver">' +
       (p.artifactId ? esc(p.artifactId) : "—") +
       (p.version ? " · v" + esc(p.version) : "") + " · " + esc(lname) + "</div></div>" +
       '<p class="dtag" style="color:' + c + '">' + esc(p.tagline) + "</p>";
 
     if (p.summary) h += '<p class="dsum">' + esc(p.summary) + "</p>";
-    if (p.purpose) h += '<p class="dpurpose">' + esc(p.purpose) + "</p>";
+    if (p.purpose) h += '<p class="dpurpose">manifest 登记定位（可能含历史口径）：' + esc(p.purpose) + "</p>";
     if (p.note) h += '<div class="dnote">' + esc(p.note) + "</div>";
 
     var grid = dcell("仓库名", esc(p.name)) +
       dcell("构件坐标", esc(p.artifactId || "—")) +
       dcell("本地版本", p.version ? "v" + esc(p.version) : "—") +
-      dcell("发布状态", p.published === "central" ?
-        (p.maven ? "已发 Maven Central" : "走 npm @yuku123，不发 Maven") :
-        p.published === "pending" ? "待发版（未上 Central）" :
-        p.published === "meta" ? "meta（不发版）" : "不发版") +
-      dcell("可见性", p.private ? "private" : "public") +
+      dcell("发布状态（登记快照）", p.published === "central" ?
+        (p.maven ? "已登记 Maven Central 发布" : "已登记 npm 发布") :
+        p.published === "pending" ? "待发版" :
+        p.published === "meta" ? "meta（不发版）" :
+        p.published === "none" ? "未登记发布" : "未登记") +
+      dcell("可见性", p.private === true ? "private" : p.private === false ? "public" : "未核实") +
       dcell("分层", esc(lname)) +
       dcell("代码文件", fmt(p.codeFiles)) +
       dcell("代码体量", fmt(p.codeKB) + " KB") +
@@ -214,6 +220,15 @@
           : "") + "</div>");
     }
 
+    if ($("#drawer").hidden) {
+      drawerTrigger = trigger || document.activeElement;
+      bodyOverflow = document.body.style.overflow;
+      backgroundState = [].map.call(document.querySelectorAll('body > header, body > main, body > footer'), function (el) {
+        var previous = { element: el, inert: el.inert };
+        el.inert = true;
+        return previous;
+      });
+    }
     $("#dBody").innerHTML = h;
     $("#drawer").hidden = false;
     $("#mask").hidden = false;
@@ -223,9 +238,14 @@
   }
 
   function closeDrawer() {
+    if ($("#drawer").hidden) return;
     $("#drawer").hidden = true;
     $("#mask").hidden = true;
-    document.body.style.overflow = "";
+    document.body.style.overflow = bodyOverflow;
+    backgroundState.forEach(function (previous) { previous.element.inert = previous.inert; });
+    backgroundState = [];
+    if (drawerTrigger && drawerTrigger.isConnected) drawerTrigger.focus({ preventScroll: true });
+    drawerTrigger = null;
   }
 
   /* ── 技术栈 ───────────────────────────────────────── */
@@ -245,12 +265,12 @@
       esc(D.org.tagline) + "。组织当前登记 <strong>" + D.stats.repos +
       "</strong> 个仓库，本机已 clone <strong>" + D.stats.cloned +
       "</strong> 个，累计 <strong>" + fmt(D.stats.codeFiles) + "</strong> 个代码文件、" +
-      "<strong>" + fmt(D.stats.commits) + "</strong> 次提交。分层之间只允许向下依赖，" +
-      "数据面模块彼此不互依，跨中间件的耦合统一收在控制面与组合产品里。</p>" +
-      '<p>所有版本、发布状态、依赖计数均来自 <strong>实测</strong>而非声明：' +
-      "版本取自各仓 pom 现读，发布状态取自 Maven Central metadata，跨仓依赖取自全仓 pom 扫描。</p>";
+      "<strong>" + fmt(D.stats.commits) + "</strong> 次提交。分层是按职责维护的展示分组，不等于部署拓扑。</p>" +
+      '<p>本地版本取自各仓 pom；可见性、发布状态与登记定位沿用 manifest，未在生成时访问远端核验。' +
+      "跨仓依赖取自已有 maven-inventory 快照（" + esc(D.inventoryGenerated || "日期未记录") +
+      "），按当前有效仓集合统计，并非本次重新扫描。</p>";
     $("#genDate").textContent = D.generated;
-    // 静态 HTML 里的 46 只是 JS 未跑时的兜底，真实读数一律取实测数据
+    // 静态 HTML 不写死仓数，真实读数一律取生成数据。
     ["browseRepos", "subRepos", "footRepos"].forEach(function (id) {
       var el = $("#" + id);
       if (el) el.textContent = D.stats.repos;
@@ -282,13 +302,13 @@
     // 卡片点击 + 分层 chip 点击（事件委托）
     document.addEventListener("click", function (e) {
       var cardEl = e.target.closest(".card");
-      if (cardEl) { openDrawer(cardEl.dataset.repo); return; }
+      if (cardEl) { openDrawer(cardEl.dataset.repo, cardEl); return; }
       var chip = e.target.closest(".lchip");
       if (chip) {
         e.preventDefault();
         var r = chip.dataset.repo;
         var target = document.querySelector('.card[data-repo="' + r + '"]');
-        openDrawer(r);
+        openDrawer(r, chip);
         return target;
       }
     });
@@ -302,7 +322,20 @@
     $("#dClose").addEventListener("click", closeDrawer);
     $("#mask").addEventListener("click", closeDrawer);
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && !$("#drawer").hidden) closeDrawer();
+      var drawer = $("#drawer");
+      if (!drawer.hidden) {
+        if (e.key === "Escape") { e.preventDefault(); closeDrawer(); }
+        if (e.key === "Tab") {
+          var focusable = drawer.querySelectorAll('button:not([disabled]), a[href], [tabindex="0"]');
+          var first = focusable[0], last = focusable[focusable.length - 1];
+          if (e.shiftKey && (document.activeElement === first || !drawer.contains(document.activeElement))) {
+            e.preventDefault(); last.focus();
+          } else if (!e.shiftKey && (document.activeElement === last || !drawer.contains(document.activeElement))) {
+            e.preventDefault(); first.focus();
+          }
+        }
+        return;
+      }
       if (e.key === "/" && document.activeElement !== q) { e.preventDefault(); q.focus(); }
     });
 
