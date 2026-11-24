@@ -98,8 +98,8 @@ LAYERS = [
         "id": "frontend", "name": "前端与环境", "en": "Frontend & Env",
         "tagline": "不走 Maven Central 的那一组",
         "desc": "共享渲染引擎 z-frontend-render（本机目录 z-render）、前端组件库 z-frontend-common、"
-                "Markdown 渲染与编辑包 z-markdown-component，以及环境编排仓 z-env 与纯静态展示站 z-introduce。",
-        "repos": ["z-frontend-render", "z-frontend-common", "z-markdown-component", "z-env", "z-introduce"],
+                "Markdown 渲染与编辑包 z-frontend-markdown，以及环境编排仓 z-env 与纯静态展示站 z-introduce。",
+        "repos": ["z-frontend-render", "z-frontend-common", "z-frontend-markdown", "z-env", "z-introduce"],
     },
 ]
 
@@ -145,7 +145,7 @@ TAGS = {
     "z-mask": "脱敏与遮蔽引擎",
     "z-watermark": "水印引擎（显式 / 隐写 / 盲水印溯源）",
     "z-audit": "审计与合规留痕（事件模型 + 哈希链 + 留存期）",
-    "z-markdown-component": "共享 Markdown 渲染与编辑组件包",
+    "z-frontend-markdown": "共享 Markdown 渲染与编辑组件包",
 }
 
 # 仅保留可从当前本地材料定位的边界说明；未复核的旧审计结论不当作当前告警。
