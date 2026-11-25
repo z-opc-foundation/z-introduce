@@ -72,7 +72,7 @@ LAYERS = [
         "desc": "缓存、消息队列、配置、调度、工作流、RPC、网关、图库、向量库、4A、密钥、"
                 "消息下发、对象存储、代码索引、可观测性、数据源管控与 ETL。"
                 "本组只表示登记仓的能力分类，不承诺所有模块互不依赖。",
-        "repos": ["z-util", "z-cache", "z-mq", "z-config", "z-schedule", "z-camuda", "z-rpc",
+        "repos": ["z-util", "z-cache", "z-mq", "z-config", "z-schedule", "z-rpc",
                   "z-gw", "z-graph", "z-vector", "z-ctc", "z-mist", "z-msg",
                   "z-oss", "z-indexer", "z-wf", "z-observer", "z-dms", "z-etl"],
     },
@@ -117,7 +117,7 @@ TAGS = {
     "z-util": "多模块工具库集（第一底座）",
     "z-cache": "Redis 协议兼容分布式缓存", "z-mq": "NameServer + Broker 消息队列",
     "z-config": "配置中心 + 服务注册中心", "z-schedule": "分布式任务调度",
-    "z-camuda": "工作流引擎（Camunda 基座）", "z-rpc": "RPC 框架",
+    "z-rpc": "RPC 框架",
     "z-gw": "Netty 自研 API 网关", "z-graph": "图数据库（磁盘版本链存储）",
     "z-vector": "自研向量数据库",
     "z-ctc": "4A 中心 + SSO", "z-mist": "分布式密钥 / 秘密管理",
@@ -154,8 +154,6 @@ NOTES = {
               "消费入口为 z-boot-parent；旧 Central 制品保留不代表当前拓扑。",
     "z-team": "据本仓 README「仓的由来」：2026-10-20 从 z-opc 迁出，"
               "当前为自带父 POM、reactor 与前端组件包的独立仓，不是空占位。",
-    "z-camuda": "材料存在差异：z-boot/README.md 的 2026-11-17 注记称本仓已归档，"
-                "但 manifest 尚未标 retired；本站按 manifest 保留，不据此断言仍在维护。",
     "z-biz-security": "据本仓 README：L1 业务编排仓，只做编排与拦截判定，"
                       "不自行实现识别、脱敏、水印、审计算法。",
     "z-introduce": "本站本身：纯静态，无后端；本地实测数据与登记快照分开标注。",
